@@ -1203,6 +1203,11 @@ class AntigravityPluginTests(unittest.TestCase):
             # First spawn should NOT have --conversation
             self.assertNotIn("--conversation", worker_spawns[0])
 
+            # agy keeps the conversation on disk; a resume is only attempted when it is there.
+            conv_dir = Path(client._isolated_gemini_dir) / "conversations"
+            conv_dir.mkdir(parents=True, exist_ok=True)
+            (conv_dir / "conv-persistent-42.db").write_bytes(b"")
+
             # Simulate worker process dying or reaped while keeping conversation
             client._terminate_worker(keep_conversation=True)
             self.assertIsNone(client._worker_proc)

@@ -267,6 +267,7 @@ class AntigravityStream(Iterator[Any]):
         # Worker deltas and concurrent oneshots must never share samples.
         self.delivery_watch = delivery_watch
         self.delivery_sample_key = delivery_sample_key
+        self._last_call_usage: dict[str, Any] | None = None
         self.conversation_id = ""
         self._closed = False
         self._interrupted = False
@@ -575,6 +576,15 @@ class AntigravityStream(Iterator[Any]):
         """
         if self.is_worker and self.usage_baseline is not None:
             deltas = _delta_worker_usage(usage_data, self.usage_baseline)
+            last_call = getattr(self, "_last_call_usage", None)
+            if isinstance(last_call, dict):
+                # Hermes sizes the context (and decides on compression) from prompt_tokens, so
+                # report the context the model actually saw on its last call: uncached input
+                # plus cache reads. The per-turn delta alone under-reports a long conversation
+                # (measured: ~2k reported while ~155k were in context).
+                context = int(last_call.get("input_tokens", 0) or 0) + int(last_call.get("cache_read_tokens", 0) or 0)
+                cached = int(last_call.get("cache_read_tokens", 0) or 0)
+                return (context, deltas.output_tokens, context + deltas.output_tokens, cached)
             return (
                 deltas.input_tokens,
                 deltas.output_tokens,
@@ -805,6 +815,15 @@ class AntigravityStream(Iterator[Any]):
                             break
                     if "usage" in step:
                         usage_data = step["usage"]
+                        if step.get("step_type") == "agent_response" and isinstance(step["usage"], dict):
+                            # Per-model-call usage: uncached input + cache reads = the real context
+                            # size of this call (result usage is cumulative for a worker session).
+                            self._last_call_usage = step["usage"]
+                    if step.get("step_type") == "checkpoint" and self.is_worker:
+                        # agy compacted its conversation; standing instructions may be summarized.
+                        note = getattr(self.client, "_note_checkpoint", None)
+                        if callable(note):
+                            note()
 
                     text_delta = step.get("text_delta")
                     if text_delta:
@@ -1194,6 +1213,9 @@ class AntigravityStream(Iterator[Any]):
                 watchdog_thread.join(timeout=0.2)
             if self.is_worker:
                 if success and not self._interrupted:
+                    note = getattr(self.client, "_note_worker_conversation", None)
+                    if callable(note):
+                        note(self.conversation_id)
                     self.client._update_worker_history(self.messages)
                     self._release_worker_lock_once()
                 else:
