@@ -95,11 +95,14 @@ def message_hash(message: Any) -> str:
     response item ids) are deliberately ignored."""
     if not isinstance(message, dict):
         return "invalid"
+    # Tool calls are identified by id + name only. Hermes rewrites a past call's arguments when
+    # they were invalid JSON ("corrupted tool_call arguments repaired"); that is not an edit by
+    # the user and must not look like one (it used to trigger a full resend mid-turn).
     calls = []
     for call in message.get("tool_calls") or []:
         if isinstance(call, dict):
             function = call.get("function") or {}
-            calls.append([call.get("id"), function.get("name"), _normalized_arguments(function.get("arguments"))])
+            calls.append([call.get("id"), function.get("name")])
     identity = [
         str(message.get("role") or ""),
         message.get("content"),

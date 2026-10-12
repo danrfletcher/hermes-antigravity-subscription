@@ -261,6 +261,43 @@ class PersistentClientTests(unittest.TestCase):
         self.assertIn("STANDING INSTRUCTIONS", calls[2]["prompt"])
         self.assertIn("You are Vector.", calls[2]["prompt"])
 
+    def test_hermes_repairing_past_tool_arguments_is_not_an_edit(self):
+        # Seen live (session 20261012_135106_bbbf0e): Hermes rewrote an earlier call's invalid JSON
+        # arguments, the plugin read it as an edit and resent the history with skill text cut to
+        # 300 chars, so the model lost the question format the skill asks for.
+        cl = self.client()
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "go"}]
+            self.ask(cl, m)
+            bad = {"role": "assistant", "content": None, "tool_calls": [
+                {"id": "call_x", "type": "function", "function": {"name": "terminal", "arguments": "{\"command\": \"ls\n"}}]}
+            m += [bad, {"role": "tool", "tool_call_id": "call_x", "content": "Error: Invalid JSON arguments"}]
+            a2, _ = self.ask(cl, m)
+            repaired = dict(bad, tool_calls=[{"id": "call_x", "type": "function", "function": {"name": "terminal", "arguments": "{}"}}])
+            m2 = m[:2] + [repaired, m[3], {"role": "assistant", "content": a2}, {"role": "user", "content": "next"}]
+            self.ask(cl, m2)
+        finally:
+            cl.close()
+        calls = self.calls()
+        self.assertEqual(len({c["conversation_id"] for c in calls}), 1)
+        self.assertNotIn("You are Vector.", calls[2]["prompt"])  # delta, not a full resend
+        self.assertIn("next", calls[2]["prompt"])
+
+    def test_full_resend_keeps_older_tool_results_intact_when_they_fit(self):
+        cl = self.client()
+        try:
+            skill = "SKILL FORMAT: use the question emoji. " + "rule " * 400 + "END-OF-SKILL"
+            m = [self.SYSTEM, {"role": "user", "content": "go"}]
+            for i in range(10):
+                m += [{"role": "assistant", "content": None, "tool_calls": [
+                          {"id": f"c{i}", "type": "function", "function": {"name": "skill_view", "arguments": "{}"}}]},
+                      {"role": "tool", "tool_call_id": f"c{i}", "content": skill if i == 0 else f"result {i}"}]
+            m.append({"role": "user", "content": "now"})
+            self.ask(cl, m, session="S-skill")
+        finally:
+            cl.close()
+        self.assertIn("END-OF-SKILL", self.calls()[0]["prompt"])
+
     def test_new_tools_are_restated(self):
         tool = lambda n: {"type": "function", "function": {"name": n, "description": n, "parameters": {"type": "object", "properties": {}}}}
         cl = self.client()

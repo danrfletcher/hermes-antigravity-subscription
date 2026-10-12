@@ -759,8 +759,13 @@ def _format_messages_as_prompt(
     tools: list[dict[str, Any]] | None = None,
     tool_choice: Any = None,
     media_sink: Optional[set] = None,
+    historical_tool_chars: int = 300,
 ) -> str:
-    """Assemble Hermes message history, system prompt, and tool schemas into a canonical prompt."""
+    """Assemble Hermes message history, system prompt, and tool schemas into a canonical prompt.
+
+    ``historical_tool_chars``: tool results older than the last 8 are cut to this length. The
+    persistent-conversation client raises it so a full resend keeps skill/workflow text the
+    model still has to follow, and only falls back to the short cut when the prompt is too big."""
     try:
         from agent.acp_openai_bridge import render_tool_bridge_sections
         tool_sections = render_tool_bridge_sections(tools, tool_choice)
@@ -794,7 +799,7 @@ def _format_messages_as_prompt(
         sections.append("### SYSTEM INSTRUCTIONS (HERMES AGENT):\n" + "\n\n".join(f"System:\n{p}" for p in system_parts))
 
     _HISTORICAL_TOOL_RETENTION_COUNT = 8
-    _HISTORICAL_TOOL_MAX_CHARS = 300
+    _HISTORICAL_TOOL_MAX_CHARS = historical_tool_chars
     _TOOL_MAX_CHARS_CAP = 20000
 
     transcript: list[str] = []

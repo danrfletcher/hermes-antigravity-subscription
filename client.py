@@ -774,6 +774,12 @@ class AntigravityClient:
         agy silently keeps only the beginning of an oversized message, so when the history is too
         large the OLDEST messages are left out (with a note) rather than the newest."""
         limit = _session_store.max_prompt_chars()
+        # Prefer keeping older tool results (skills, workflow files) intact; they carry
+        # instructions the model must still follow after a resend.
+        prompt = _format_messages_as_prompt(messages, model=model, tools=tools, tool_choice=tool_choice,
+                                            media_sink=self._materialized_media, historical_tool_chars=20000)
+        if len(prompt) <= limit:
+            return prompt, False
         prompt = _format_messages_as_prompt(messages, model=model, tools=tools, tool_choice=tool_choice,
                                             media_sink=self._materialized_media)
         if len(prompt) <= limit:
