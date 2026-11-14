@@ -16,9 +16,10 @@ import pytest
 
 from stream import AntigravityStream
 
-RAW = os.path.expanduser(
-    "~/agy-captures/hy2_hook_0.json"
-)
+# A real Gemini 4 Hydrogen runaway (agy 1.5.9 stream-json text deltas, captured live): five calls,
+# then an invented "Tool Result (call_34):" and more calls premised on it. Redacted for the repo
+# (every argument value and all prose masked, lengths and delta boundaries kept).
+RAW = os.path.join(os.path.dirname(__file__), "fixtures", "hydrogen_runaway_stream.jsonl")
 
 
 def _call(identifier: str, name: str = "read_file", **args) -> str:
@@ -79,14 +80,13 @@ def _result(response=""):
 
 
 def _captured_lines(with_result: bool):
-    data = json.load(open(RAW))
-    lines = [line for _t, line in data["lines"] if '"event":"result"' not in line.replace(" ", "")]
+    with open(RAW) as fh:
+        lines = [line.strip() for line in fh if line.strip()]
     if with_result:
         lines.append(_result())
     return lines
 
 
-@pytest.mark.skipif(not os.path.exists(RAW), reason="captured runaway stream not present")
 def test_captured_runaway_delivers_only_the_first_call_run():
     calls, content, finish, _client, _proc_, _s = _run(_captured_lines(with_result=True))
     ids = [c.id for c in calls]
@@ -97,7 +97,6 @@ def test_captured_runaway_delivers_only_the_first_call_run():
     assert finish == ["tool_calls"]
 
 
-@pytest.mark.skipif(not os.path.exists(RAW), reason="captured runaway stream not present")
 def test_captured_runaway_without_result_event_still_ends_the_turn():
     # The real failure: no result event, process still alive.
     calls, _content, finish, _client, _p, _s = _run(_captured_lines(with_result=False), poll=None)
