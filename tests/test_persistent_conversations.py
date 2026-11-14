@@ -142,6 +142,22 @@ class PersistentClientTests(unittest.TestCase):
         self.assertIn("what was it?", second["prompt"])
         self.assertEqual(a2, "ACK 2")  # agy's own record carried both prompts
 
+    def test_fresh_start_never_purges_other_sessions_conversations(self):
+        # The store's agy HOME is shared by every Hermes session: upstream's purge of
+        # conversations/*.db on a fresh start must not run there.
+        cl = self.client()
+        try:
+            self.ask(cl, [self.SYSTEM, {"role": "user", "content": "session one"}], session="S1")
+            other = self.ask(cl, [self.SYSTEM, {"role": "user", "content": "unrelated"}], session="S1")
+            self.assertTrue(other[0])
+        finally:
+            cl.close()
+        first, second = self.calls()[:2]
+        self.assertNotEqual(first["conversation_id"], second["conversation_id"])
+        conv_dir = self.tmp / "data"
+        dbs = {p.stem for p in conv_dir.rglob("conversations/*.db")}
+        self.assertIn(first["conversation_id"], dbs)
+
     def test_tool_round_trip_is_delta_only(self):
         cl = self.client()
         try:
