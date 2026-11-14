@@ -814,6 +814,7 @@ class AntigravityStream(Iterator[Any]):
         silence_stop = threading.Event()
         silence_thread: threading.Thread | None = None
         self._last_event_at = time.monotonic()
+        self._max_event_gap = 0.0
         if silence_after > 0:
             # A weak reference only: a live thread holding the stream would keep an abandoned
             # stream (and its generator's finally) from ever being collected.
@@ -848,6 +849,7 @@ class AntigravityStream(Iterator[Any]):
                     continue
 
                 last_stdout_at = time.monotonic()
+                self._max_event_gap = max(self._max_event_gap, last_stdout_at - self._last_event_at)
                 self._last_event_at = last_stdout_at
                 if self.is_worker:
                     # The idle countdown reads this to tell a busy worker from
@@ -1389,6 +1391,9 @@ class AntigravityStream(Iterator[Any]):
             raise
         finally:
             silence_stop.set()
+            # The longest pause between agy events this turn: what the silence cutoff must exceed.
+            logger.info("Antigravity turn: longest gap between agy events %.1fs (cutoff %gs)",
+                        getattr(self, "_max_event_gap", 0.0), silence_after)
             watchdog_stop.set()
             if watchdog_thread and watchdog_thread.is_alive():
                 watchdog_thread.join(timeout=0.2)
