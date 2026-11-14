@@ -1357,13 +1357,8 @@ class AntigravityClient:
         tool_choice: Any,
         stream: bool,
     ) -> Any:
-        prompt_text = _format_messages_as_prompt(
-            messages,
-            model=model,
-            tools=tools,
-            tool_choice=tool_choice,
-            media_sink=self._materialized_media,
-        )
+        # A oneshot is always a full-history prompt: fit it under agy's single-message limit (E7).
+        prompt_text, _ = self._fit_full_prompt(messages, model=model, tools=tools, tool_choice=tool_choice)
         dump_prompt_debug(
             prompt=prompt_text,
             branch="oneshot",

@@ -40,7 +40,7 @@ DATA_DIR_ENV = "ANTIGRAVITY_PLUGIN_DATA_DIR"
 # rest is dropped silently). Full-history prompts are kept below this limit, measured in bytes
 # (prompt_size): non-ASCII text is up to 4 bytes a character. The env name is historical.
 MAX_PROMPT_CHARS_ENV = "ANTIGRAVITY_MAX_PROMPT_CHARS"
-DEFAULT_MAX_PROMPT_CHARS = 180_000
+DEFAULT_MAX_PROMPT_CHARS = 185_000
 SESSION_RETENTION_SECONDS = 30 * 24 * 3600
 ORPHAN_CONVERSATION_SECONDS = 24 * 3600
 _SAFE_KEY = re.compile(r"[^A-Za-z0-9_.-]")
