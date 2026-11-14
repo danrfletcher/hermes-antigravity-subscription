@@ -696,8 +696,9 @@ class NativeGateAndPromptTests(unittest.TestCase):
     def test_gate_allows_hermes_tools_only(self):
         import tool_gate as G
         allow = lambda name, args=None: G.decide({"toolCall": {"name": name, "args": args or {}}}, "", "/nonexistent")
-        self.assertEqual(allow("mcp_hermes_terminal")["decision"], "allow")
-        self.assertEqual(allow("call_mcp_tool", {"ServerName": "hermes", "ToolName": "terminal"})["decision"], "allow")
+        self.assertEqual(allow("mcp_hermes_terminal")["decision"], "auto_approve")
+        self.assertEqual(allow("call_mcp_tool", {"ServerName": "hermes", "ToolName": "terminal"})["decision"],
+                         "auto_approve")
         self.assertEqual(allow("call_mcp_tool", {"ServerName": "other"})["decision"], "deny")
         self.assertEqual(allow("run_command", {"CommandLine": "ls"})["decision"], "deny")
         self.assertEqual(allow("mcp_hermes_")["decision"], "deny")

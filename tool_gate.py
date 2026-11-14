@@ -101,7 +101,9 @@ def decide(payload, settings_path: str, isolated_home: str) -> dict:
     call = call if isinstance(call, dict) else {}
     name = str(call.get("name") or "")
     if is_hermes_tool(name, call.get("args")):
-        return {"decision": "allow"}
+        # auto_approve (as the native-route probes ran): agy would otherwise hold an MCP call for an
+        # approval nobody can give headless. The bridge runs nothing; Hermes applies its own approvals.
+        return {"decision": "auto_approve"}
     if is_permitted_media_read(name, call.get("args"), settings_path, isolated_home):
         return {"decision": "allow"}
     return {"decision": "deny", "reason": DENY_REASON}
