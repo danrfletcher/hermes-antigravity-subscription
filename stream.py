@@ -824,7 +824,7 @@ class AntigravityStream(Iterator[Any]):
                         return
                     quiet = time.monotonic() - stream._last_event_at
                     if quiet >= silence_after:
-                        stream._cut_bad_turn(f"no output from agy for {quiet:.0f}s")
+                        stream._cut_bad_turn(f"no output from agy for {quiet:.1f}s")
                         return
                     del stream
 

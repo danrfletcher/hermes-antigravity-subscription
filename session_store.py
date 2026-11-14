@@ -36,10 +36,11 @@ logger = logging.getLogger(__name__)
 PLUGIN_DIR_NAME = "antigravity-subscription-directsdk"
 PERSIST_ENV = "ANTIGRAVITY_PERSIST_CONVERSATIONS"
 DATA_DIR_ENV = "ANTIGRAVITY_PLUGIN_DATA_DIR"
-# agy keeps a single stream-json user message only up to roughly 185k characters (measured on
-# agy 1.3.3: 185k read in full, 200k cut at the end). Full-history prompts are kept below this.
+# agy keeps only the first ~192,000 UTF-8 BYTES of one stream-json user message (agy 1.5.9; the
+# rest is dropped silently). Full-history prompts are kept below this limit, measured in bytes
+# (prompt_size): non-ASCII text is up to 4 bytes a character. The env name is historical.
 MAX_PROMPT_CHARS_ENV = "ANTIGRAVITY_MAX_PROMPT_CHARS"
-DEFAULT_MAX_PROMPT_CHARS = 150_000
+DEFAULT_MAX_PROMPT_CHARS = 180_000
 SESSION_RETENTION_SECONDS = 30 * 24 * 3600
 ORPHAN_CONVERSATION_SECONDS = 24 * 3600
 _SAFE_KEY = re.compile(r"[^A-Za-z0-9_.-]")
@@ -49,6 +50,11 @@ _CONVERSATION_ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}
 def persistence_enabled() -> bool:
     raw = str(os.environ.get(PERSIST_ENV, "1")).strip().lower()
     return raw not in ("0", "false", "no", "off")
+
+
+def prompt_size(prompt: str) -> int:
+    """What agy's single-message limit counts: UTF-8 bytes."""
+    return len(prompt.encode("utf-8", "surrogatepass"))
 
 
 def max_prompt_chars() -> int:
@@ -229,6 +235,15 @@ class SessionStore:
                 "updated": time.time(),
             }
             self._write(data)
+
+    def set_rewind_point(self, session_id: str, point: dict[str, Any] | None) -> None:
+        """Where to cut the conversation back to if the turn being sent goes bad."""
+        with self._file_lock():
+            data = self._read()
+            entry = data.get(session_id)
+            if isinstance(entry, dict):
+                entry["rewind"] = point
+                self._write(data)
 
     def mark_bad(self, session_id: str, reason: str) -> None:
         """The conversation's latest turn went bad: it must be rewound before the next resume.

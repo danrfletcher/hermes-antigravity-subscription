@@ -167,11 +167,47 @@ class PersistentClientTests(unittest.TestCase):
             os.environ.pop("FAKE_AGY_RUNAWAY", None)
         calls = self.calls()
         self.assertEqual(len(calls), 3)
-        # Rewind is not available yet -> fallback: a fresh conversation with the whole history.
+        # The fake agy keeps no real conversation DB, so the rewind is refused -> fallback: a fresh
+        # conversation with the whole history.
         self.assertNotEqual(calls[2]["conversation_id"], calls[1]["conversation_id"])
         self.assertIn("first", calls[2]["prompt"])
         self.assertIn("REAL RESULT", calls[2]["prompt"])
         self.assertIsNone(cl._pending_recovery)
+
+    def test_rewound_bad_turn_resumes_the_same_conversation_with_a_delta(self):
+        os.environ["FAKE_AGY_RUNAWAY"] = "2"
+        cuts = []
+
+        def fake_point(db, *, conversation_id, prompt, agy_version):
+            return {"conversation_id": conversation_id, "steps": 2}
+
+        def fake_rewind(gemini_dir, point, *, backup_dir, agy_version):
+            cuts.append(point)
+
+        cl = self.client()
+        try:
+            with patch.object(self.C._rewind, "read_point", fake_point), \
+                    patch.object(self.C._rewind, "rewind", fake_rewind):
+                m = [self.SYSTEM, {"role": "user", "content": "first"}]
+                a1, _ = self.ask(cl, m, tools=self.TOOLS)
+                m += [{"role": "assistant", "content": a1}, {"role": "user", "content": "second"}]
+                self.ask(cl, m, tools=self.TOOLS)
+                m += [{"role": "assistant", "content": None, "tool_calls": [
+                          {"id": "call_1", "type": "function", "function": {"name": "read_file", "arguments": "{}"}}]},
+                      {"role": "tool", "tool_call_id": "call_1", "content": "REAL RESULT"}]
+                self.ask(cl, m, tools=self.TOOLS)
+        finally:
+            cl.close()
+            os.environ.pop("FAKE_AGY_RUNAWAY", None)
+        calls = self.calls()
+        self.assertEqual(len(cuts), 1)
+        self.assertEqual(cuts[0]["conversation_id"], calls[1]["conversation_id"])
+        self.assertEqual(calls[2]["conversation_id"], calls[1]["conversation_id"])
+        third = calls[2]["prompt"]
+        self.assertNotIn("first", third)  # agy still has turn 1
+        self.assertIn("second", third)  # the bad turn's request, re-sent
+        self.assertIn("REAL RESULT", third)
+        self.assertNotIn("made up", third)
 
     def test_bad_flag_survives_a_restart(self):
         os.environ["FAKE_AGY_RUNAWAY"] = "2"
@@ -317,6 +353,24 @@ class PersistentClientTests(unittest.TestCase):
         self.assertIn("NEWEST QUESTION", prompt)
         self.assertIn("You are Vector.", prompt)
         self.assertNotIn("old 0 ", prompt)
+        self.assertIn("oldest messages of this conversation are not shown", prompt)
+
+    def test_full_prompt_limit_counts_utf8_bytes(self):
+        # agy cuts one message by bytes: 3-byte characters fill the limit three times faster.
+        with patch.dict(os.environ, {"ANTIGRAVITY_MAX_PROMPT_CHARS": "20000"}):
+            cl = self.client()
+            try:
+                m = [self.SYSTEM]
+                for i in range(6):
+                    m += [{"role": "user", "content": f"old {i} " + "\u6f22" * 2000},
+                          {"role": "assistant", "content": f"answer {i}"}]
+                m.append({"role": "user", "content": "NEWEST QUESTION"})
+                self.ask(cl, m, session="S-cjk")
+            finally:
+                cl.close()
+        prompt = self.calls()[0]["prompt"]
+        self.assertLessEqual(len(prompt.encode("utf-8")), 20000)
+        self.assertIn("NEWEST QUESTION", prompt)
         self.assertIn("oldest messages of this conversation are not shown", prompt)
 
     def test_second_client_for_same_session_does_not_touch_conversation(self):

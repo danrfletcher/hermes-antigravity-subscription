@@ -68,6 +68,7 @@ try:
     from .delivery import DeliveryWatch
     from .stream import AntigravityStream, collect_stream_completion
     from .debug import dump_prompt_debug
+    from . import rewind as _rewind
     from . import session_store as _session_store
 except ImportError:
     from models import (
@@ -109,6 +110,7 @@ except ImportError:
     from delivery import DeliveryWatch
     from stream import AntigravityStream, collect_stream_completion
     from debug import dump_prompt_debug
+    import rewind as _rewind
     import session_store as _session_store
 
 logger = logging.getLogger(__name__)
@@ -460,6 +462,10 @@ class AntigravityClient:
         self._pending_recovery: dict[str, Any] | None = None
         self._recovery_key: tuple[int, str] | None = None
         self._recovery_count = 0
+        self._recovery_note: str | None = None
+        # The conversation's shape just before the turn in flight was sent (rewind.read_point).
+        self._rewind_point: dict[str, Any] | None = None
+        self._rewind_backups = Path(self._isolated_home).parent / "rewind-backups"
 
         # A Hermes process that died without close() leaves its agy worker
         # orphaned, holding a conversation open on the shared account (the
@@ -765,6 +771,8 @@ class AntigravityClient:
                                 hashes=hashes, tools=tools_fp)
             except Exception as exc:
                 logger.warning("Antigravity: could not record conversation for %s: %s", session_id, exc)
+        if conversation_id:
+            _rewind.drop_backups(self._rewind_backups, conversation_id)
 
     # ── Bad-turn recovery ─────────────────────────────────────────────────────────────────
 
@@ -790,6 +798,7 @@ class AntigravityClient:
                     "good_hashes": list(self._worker_hashes),
                     "tools_fp": self._worker_tools_fp,
                     "reason": reason,
+                    "point": self._rewind_point,
                 }
             session_id = self._session_id if self._session_claim is not None else None
         if self._store is not None and session_id:
@@ -802,9 +811,54 @@ class AntigravityClient:
         """Delete the bad turn from agy's conversation so it resumes at the last good state.
 
         False means the conversation could not be rewound safely; the caller falls back to a
-        fresh conversation with a fitted resend.
+        fresh conversation with a fitted resend. agy is already stopped (``_recover_bad_turn``).
         """
-        return False
+        point = pending.get("point")
+        if not isinstance(point, dict) or point.get("conversation_id") != pending.get("conversation_id"):
+            logger.info("Antigravity rewind: no rewind point for this conversation")
+            return False
+        try:
+            _rewind.rewind(self._isolated_gemini_dir, point, backup_dir=self._rewind_backups,
+                           agy_version=self._agy_cli_version())
+        except _rewind.RewindRefused as exc:
+            logger.warning("Antigravity rewind refused: %s", exc)
+            return False
+        except Exception as exc:  # sqlite/OS trouble: the transaction rolled back
+            logger.warning("Antigravity rewind failed: %s", exc, exc_info=True)
+            return False
+        return True
+
+    def _agy_cli_version(self) -> str | None:
+        """Identity of the agy binary (resolved path, size, mtime): an upgrade changes it.
+
+        A stat, not ``agy --version``: it runs before every turn on a known conversation.
+        """
+        try:
+            path = shutil.which(self._command) or self._command
+            real = os.path.realpath(path)
+            st = os.stat(real)
+            return f"{real}:{st.st_size}:{int(st.st_mtime)}"
+        except (OSError, TypeError):
+            return None
+
+    def _record_rewind_point(self, session_id: str | None, persistent: bool,
+                             conversation_id: str | None, prompt: str) -> None:
+        """Before a turn on a known conversation is sent: remember where to cut back to."""
+        point = None
+        if conversation_id:
+            try:
+                point = _rewind.read_point(
+                    Path(self._isolated_gemini_dir) / "conversations" / f"{conversation_id}.db",
+                    conversation_id=conversation_id, prompt=prompt, agy_version=self._agy_cli_version())
+            except Exception as exc:
+                logger.debug("Antigravity: could not read the rewind point: %s", exc)
+        with self._lock:
+            self._rewind_point = point
+        if persistent:
+            try:
+                self._store.set_rewind_point(session_id, point)
+            except Exception as exc:
+                logger.debug("Antigravity: could not store the rewind point: %s", exc)
 
     def _recover_bad_turn(self, session_id: str | None, persistent: bool) -> None:
         """Before any send: clear up a turn the previous request left bad (GP4 / GP6 / GP7)."""
@@ -818,7 +872,8 @@ class AntigravityClient:
                 stored = entry
                 pending = {"conversation_id": entry["conversation_id"],
                            "good_hashes": list(entry.get("hashes") or []),
-                           "tools_fp": entry.get("tools"), "reason": entry["bad"]}
+                           "tools_fp": entry.get("tools"), "reason": entry["bad"],
+                           "point": entry.get("rewind")}
         if pending is None:
             return
         if count > MAX_RECOVERIES_PER_REQUEST:
@@ -833,8 +888,15 @@ class AntigravityClient:
                        and self._rewind_bad_turn(pending))
         logger.warning("Antigravity recovery (%s): %s", pending.get("reason"),
                        "rewound the bad turn" if rewound else "fresh conversation with a fitted resend")
+        reason = str(pending.get("reason") or "")
         with self._lock:
             self._pending_recovery = None
+            self._rewind_point = None
+            if "' ran" in reason:
+                # The rewind takes the attempt out of the model's memory, not out of the world.
+                self._recovery_note = (
+                    f"[Note] An earlier attempt at this turn used a tool outside Hermes ({reason}); "
+                    "its effects may already be present.")
             if rewound:
                 self._worker_conversation_id = conversation_id
                 self._worker_hashes = list(pending["good_hashes"])
@@ -910,11 +972,11 @@ class AntigravityClient:
         # instructions the model must still follow after a resend.
         prompt = _format_messages_as_prompt(messages, model=model, tools=tools, tool_choice=tool_choice,
                                             media_sink=self._materialized_media, historical_tool_chars=20000)
-        if len(prompt) <= limit:
+        if _session_store.prompt_size(prompt) <= limit:
             return prompt, False
         prompt = _format_messages_as_prompt(messages, model=model, tools=tools, tool_choice=tool_choice,
                                             media_sink=self._materialized_media)
-        if len(prompt) <= limit:
+        if _session_store.prompt_size(prompt) <= limit:
             return prompt, False
         head = 0
         while head < len(messages) and isinstance(messages[head], dict) and messages[head].get("role") in ("system", "developer"):
@@ -935,7 +997,7 @@ class AntigravityClient:
         while lo <= hi:
             mid = (lo + hi) // 2
             candidate = render(cuts[mid])
-            if len(candidate) <= limit:
+            if _session_store.prompt_size(candidate) <= limit:
                 best, hi = candidate, mid - 1
             else:
                 lo = mid + 1
@@ -1024,6 +1086,12 @@ class AntigravityClient:
                 prompt = self._instruction_header(messages, tools, tool_choice) + "\n\n" + prompt
         with self._lock:
             self._worker_tools_fp = tools_fp
+            note, self._recovery_note = self._recovery_note, None
+            point_conversation = self._worker_conversation_id if branch != "full" else None
+        if note:
+            prompt = note + "\n\n" + prompt
+        self._record_rewind_point(session_id, persistent, point_conversation or conversation_id
+                                  if branch != "full" else None, prompt)
         return proc, prompt, branch
 
     def _cancel_idle_timer_locked(self) -> None:
