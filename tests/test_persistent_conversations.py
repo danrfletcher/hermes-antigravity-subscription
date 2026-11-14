@@ -651,6 +651,27 @@ class NativeToolRouteTests(unittest.TestCase):
         finally:
             cl.close()
 
+    def test_a_long_result_reaches_agy_cut_to_fit_with_its_end_kept(self):
+        # agy shows the model at most ~10 KB of one tool result (start+end, middle hidden): the plugin
+        # cuts it first, where the model can carry on.
+        import result_fit as RF
+        cl = self.C.AntigravityClient(command=self.agy)
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "run two commands"}]
+            c1 = self.ask(cl, m)
+            big = json.dumps({"output": "\n".join(f"line {i}" for i in range(6000)) + "\nTAIL-MARK",
+                              "exit_code": 0})
+            m = self.answer(m, c1, big)
+            c2 = self.ask(cl, m)
+            self.assertEqual(c2.finish_reason, "tool_calls")
+            results = sorted((self.tmp / "data").rglob("results/*.json"))
+            self.assertTrue(results)
+            sent = json.loads(results[0].read_text())["text"]
+            self.assertLessEqual(len(sent.encode()), RF.AGY_TOOL_RESULT_MAX_BYTES)
+            self.assertTrue(sent.endswith("TAIL-MARK"))
+        finally:
+            cl.close()
+
     def test_a_request_that_does_not_answer_the_parked_call_recovers_the_turn(self):
         cl = self.C.AntigravityClient(command=self.agy)
         try:

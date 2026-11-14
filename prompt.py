@@ -563,6 +563,9 @@ _NATIVE_PROMPT_PREAMBLE = (
     "down is lost.",
     "- Read the line ranges you need (search first to find them) rather than whole large files, and "
     "start making the change once you know where it goes.",
+    "- One tool result shows you at most about 10 KB. A file read returns at most 150 lines; a longer "
+    "result is cut at a line and ends with a note saying where to continue (for a file read, the "
+    "offset to read from next). Nothing is hidden in the middle of what you see.",
     "- If no tool is needed, respond naturally with standard text.",
     "- When the user's latest message introduces a new question or task, do NOT continue prior completed tasks or tool loops. Address the user's latest request directly.",
 )
@@ -765,8 +768,22 @@ _OBJECTIVE_QUOTE_MAX_CHARS = 1500
 _OBJECTIVE_HEAD_CHARS = 600
 
 
+# Hermes' compaction handoff: a summary marked "REFERENCE ONLY ... do nothing" up to this line, then
+# the live request restated after it (agent/context_compressor.py _SUMMARY_END_MARKER).
+_SUMMARY_END_MARKER = "--- END OF CONTEXT SUMMARY"
+
+
 def _objective_quote(user_text: str, where: str) -> str:
-    """The request in full, or its opening plus where the full text is when it is long."""
+    """The request in full, or its opening plus where the full text is when it is long.
+
+    After a compaction the latest user message opens with Hermes' summary header; the request
+    being served is what follows the summary's end marker, so that is what gets quoted.
+    """
+    if _SUMMARY_END_MARKER in user_text:
+        after = user_text.split(_SUMMARY_END_MARKER, 1)[1]
+        after = after.split("\n", 1)[1] if "\n" in after else ""
+        if after.strip():
+            user_text = after.strip()
     if len(user_text) <= _OBJECTIVE_QUOTE_MAX_CHARS:
         return user_text
     return (user_text[:_OBJECTIVE_HEAD_CHARS].rstrip()

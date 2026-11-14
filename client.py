@@ -58,6 +58,7 @@ try:
         write_media_read_permissions,
         write_mcp_config,
     )
+    from .result_fit import clamp_read_file_args, fit_tool_result
     from .prompt import (
         _PROMPT_PREAMBLE,
         _ROLE_LABELS,
@@ -102,6 +103,7 @@ except ImportError:
         write_media_read_permissions,
         write_mcp_config,
     )
+    from result_fit import clamp_read_file_args, fit_tool_result
     from prompt import (
         _PROMPT_PREAMBLE,
         _ROLE_LABELS,
@@ -1411,9 +1413,10 @@ class AntigravityClient:
             except (OSError, ValueError):
                 continue
             seq = int(path.stem)
-            args = data.get("arguments")
+            name = str(data.get("name") or "")
+            args = clamp_read_file_args(name, data.get("arguments"))
             calls.append({"seq": seq, "id": f"call_mcp_{bridge_dir.name}_{seq}",
-                          "name": str(data.get("name") or ""),
+                          "name": name,
                           "arguments": json.dumps(args if isinstance(args, dict) else {}, ensure_ascii=False)})
         if calls:
             with self._lock:
@@ -1476,13 +1479,19 @@ class AntigravityClient:
             return None
         results_dir = bridge_dir / "results"
         results_dir.mkdir(parents=True, exist_ok=True)
+        names = {str(tc.get("id")): str((tc.get("function") or {}).get("name") or "")
+                 for tc in rest[0].get("tool_calls") or [] if isinstance(tc, dict)}
         for r in results:
             seq = calls[r["tool_call_id"]]
+            full = _tool_result_text(r.get("content"))
+            text = fit_tool_result(names.get(str(r["tool_call_id"]), ""), full)
+            if text is not full:
+                logger.info("Antigravity: tool result cut to fit agy's limit (%d -> %d bytes)",
+                            len(full.encode("utf-8")), len(text.encode("utf-8")))
             tmp = results_dir / f"{seq:06d}.json.tmp"
-            tmp.write_text(json.dumps({"text": _tool_result_text(r.get("content"))}, ensure_ascii=False),
-                           encoding="utf-8")
+            tmp.write_text(json.dumps({"text": text}, ensure_ascii=False), encoding="utf-8")
             os.replace(tmp, results_dir / f"{seq:06d}.json")
-            self._note_native_result_chars(proc, len(_tool_result_text(r.get("content"))))
+            self._note_native_result_chars(proc, len(text))
         with self._lock:
             if self._parked is parked:
                 self._parked = None

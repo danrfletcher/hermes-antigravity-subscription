@@ -147,6 +147,19 @@ def hermes_tool_schemas(tools: list[dict[str, Any]] | None) -> dict[str, dict[st
     return out
 
 
+_AGY_CUT_RE = re.compile(r"<truncated \d+ of \d+ bytes from the middle of the output>")
+
+
+def agy_cut_marker(step: dict[str, Any]) -> str:
+    """agy's marker when it showed the model only a start+end preview of a tool result, else ''."""
+    info = step.get("tool_info")
+    output = info.get("output") if isinstance(info, dict) else None
+    if not isinstance(output, str):
+        return ""
+    m = _AGY_CUT_RE.search(output)
+    return m.group(0) if m else ""
+
+
 # How long a native mcp_hermes_* step may take to reach the bridge (after agy's hook approves it).
 BRIDGE_CALL_WAIT_SECONDS = 15.0
 
@@ -1010,6 +1023,12 @@ class AntigravityStream(Iterator[Any]):
                         elif state == "ERROR":
                             logger.warning("Antigravity: native Hermes tool step failed: %s",
                                            _tool_step_error(step)[:300])
+                        elif state == "DONE":
+                            cut = agy_cut_marker(step)
+                            if cut:
+                                # result_fit.py should have kept it under agy's limit: the limit moved?
+                                logger.warning("Antigravity: agy cut a Hermes tool result (%s): %s",
+                                               step.get("tool_name"), cut)
                         continue
                     salvaged = (salvage_native_call(step, self._tool_schemas)
                                 if step.get("step_type") == "tool" and self.has_tools
