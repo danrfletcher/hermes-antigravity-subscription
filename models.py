@@ -47,8 +47,10 @@ _MODEL_ALIASES = {
     "claude-opus-5-5": "claude-opus-4-6-thinking",
 }
 
-_EFFORT_SUFFIXES = (("-high", "high"), ("-medium", "medium"), ("-low", "low"))
-_EFFORT_RANK = {"low": 0, "medium": 1, "high": 2}
+_EFFORT_SUFFIXES = (
+    ("-xhigh", "xhigh"), ("-high", "high"), ("-medium", "medium"), ("-low", "low"),
+)
+_EFFORT_RANK = {"low": 0, "medium": 1, "high": 2, "xhigh": 3}
 
 _SPINNER_CHARS = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 _SKIP_LINE_PREFIXES = ("error:", "usage:", "available models:", "warning:", "--")
@@ -65,9 +67,9 @@ def _normalize_effort(effort: str | None) -> str | None:
     e = str(effort).strip().lower()
     if e in ("none", "off", "minimal"):
         return "low"
-    if e in ("xhigh", "max", "ultra"):
-        return "high"
-    if e in ("low", "medium", "high"):
+    if e in ("max", "ultra"):
+        return "xhigh"
+    if e in ("low", "medium", "high", "xhigh"):
         return e
     return "medium"
 
@@ -273,8 +275,8 @@ def resolve_model_and_effort(
     # Resolve effort: explicit argument > model suffix > config setting > default.
     # Exception: a Gemini 4 id that names its effort (gemini-4-argon-medium) is a complete
     # agy model id and keeps it, so a caller can pick the effort per model (e.g. per build
-    # role) whatever the profile's reasoning_effort says. (-xhigh has no split suffix and
-    # already passes through by bare name above.)
+    # role) whatever the profile's reasoning_effort says. xhigh is a real level: models agy
+    # lists with -xhigh (Gemini 4 Hydrogen) get it, the others clamp it to their nearest.
     effort = _normalize_effort(reasoning_effort)
     if suffix_effort and base_model.lower().startswith(_EFFORT_PINNED_PREFIXES):
         effort = suffix_effort

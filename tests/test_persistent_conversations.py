@@ -5,6 +5,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -543,3 +544,270 @@ class PersistentClientTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+TERMINAL_TOOL = {"type": "function", "function": {
+    "name": "terminal", "description": "Run a shell command",
+    "parameters": {"type": "object", "properties": {"command": {"type": "string"}}, "required": ["command"]}}}
+
+
+@unittest.skipIf(os.name == "nt", "POSIX fake agy")
+class NativeToolRouteTests(unittest.TestCase):
+    """Hermes' tools as native agy tools through mcp_bridge.py (the fake agy talks real MCP to it)."""
+
+    SYSTEM = {"role": "system", "content": "You are a coder."}
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.log = self.tmp / "agy.log"
+        agy = self.tmp / "agy"
+        agy.write_text(f"#!/bin/sh\nexec {sys.executable} {FAKE} \"$@\"\n")
+        agy.chmod(agy.stat().st_mode | stat.S_IEXEC)
+        self.env = patch.dict(os.environ, {
+            "ANTIGRAVITY_PERSIST_CONVERSATIONS": "1",
+            "ANTIGRAVITY_PLUGIN_DATA_DIR": str(self.tmp / "data"),
+            "FAKE_AGY_LOG": str(self.log),
+            "AGY_NATIVE_TOOLS": "1",
+            "FAKE_AGY_NATIVE_CALLS": "2",
+        })
+        self.env.start()
+        self.auth = patch("client.is_authenticated", return_value=True)
+        self.auth.start()
+        import client as C
+        self.C = C
+        self.agy = str(agy)
+
+    def tearDown(self):
+        self.auth.stop()
+        self.env.stop()
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def prompts(self):
+        if not self.log.exists():
+            return []
+        return [json.loads(line) for line in self.log.read_text().splitlines()]
+
+    def ask(self, cl, messages, session="S1"):
+        res = cl.chat.completions.create(model="gemini-3.8-flash", messages=messages, tools=[TERMINAL_TOOL],
+                                         hermes_session_id=session)
+        return res.choices[0]
+
+    @staticmethod
+    def answer(messages, choice, output):
+        calls = [{"id": tc.id, "type": "function",
+                  "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                 for tc in choice.message.tool_calls]
+        return messages + [{"role": "assistant", "content": None, "tool_calls": calls}] + [
+            {"role": "tool", "tool_call_id": c["id"], "content": output} for c in calls]
+
+    def test_call_is_parked_answered_and_the_turn_carries_on(self):
+        cl = self.C.AntigravityClient(command=self.agy)
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "run two commands"}]
+            c1 = self.ask(cl, m)
+            self.assertEqual(c1.finish_reason, "tool_calls")
+            [tc] = c1.message.tool_calls
+            self.assertEqual(tc.function.name, "terminal")
+            self.assertEqual(json.loads(tc.function.arguments), {"command": "echo 1"})
+            m = self.answer(m, c1, "one")
+            c2 = self.ask(cl, m)
+            self.assertEqual(c2.finish_reason, "tool_calls")
+            self.assertEqual(json.loads(c2.message.tool_calls[0].function.arguments), {"command": "echo 2"})
+            m = self.answer(m, c2, "two")
+            c3 = self.ask(cl, m)
+            self.assertEqual(c3.finish_reason, "stop")
+            self.assertEqual(c3.message.content, "ACK 1: two")
+            # One agy prompt for the whole turn: the results went through the bridge.
+            prompts = self.prompts()
+            self.assertEqual(len(prompts), 1)
+            self.assertNotIn("<tool_call>", prompts[0]["prompt"])
+            self.assertIn("mcp_hermes_", prompts[0]["prompt"])
+            # The next user message continues the same conversation with only the delta.
+            m = m + [{"role": "assistant", "content": c3.message.content},
+                     {"role": "user", "content": "and now?"}]
+            c4 = self.ask(cl, m)
+            self.assertEqual(c4.finish_reason, "tool_calls")
+            prompts = self.prompts()
+            self.assertEqual(len(prompts), 2)
+            self.assertEqual(prompts[0]["conversation_id"], prompts[1]["conversation_id"])
+            self.assertIn("and now?", prompts[1]["prompt"])
+            self.assertNotIn("run two commands", prompts[1]["prompt"])
+        finally:
+            cl.close()
+
+    def test_parked_completions_report_the_context_size_never_zero(self):
+        # Hermes reads prompt_tokens=0 as "no usage" and compresses on a rough estimate that runs high.
+        cl = self.C.AntigravityClient(command=self.agy)
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "run two commands"}]
+            r1 = cl.chat.completions.create(model="gemini-3.8-flash", messages=m, tools=[TERMINAL_TOOL],
+                                            hermes_session_id="S1")
+            self.assertGreater(r1.usage.prompt_tokens, 0)
+            m = self.answer(m, r1.choices[0], "x" * 8000)
+            r2 = cl.chat.completions.create(model="gemini-3.8-flash", messages=m, tools=[TERMINAL_TOOL],
+                                            hermes_session_id="S1")
+            self.assertEqual(r2.choices[0].finish_reason, "tool_calls")
+            self.assertGreaterEqual(r2.usage.prompt_tokens, r1.usage.prompt_tokens + 2000)
+        finally:
+            cl.close()
+
+    def test_a_long_result_reaches_agy_cut_to_fit_with_its_end_kept(self):
+        # agy shows the model at most ~10 KB of one tool result (start+end, middle hidden): the plugin
+        # cuts it first, where the model can carry on.
+        import result_fit as RF
+        cl = self.C.AntigravityClient(command=self.agy)
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "run two commands"}]
+            c1 = self.ask(cl, m)
+            big = json.dumps({"output": "\n".join(f"line {i}" for i in range(6000)) + "\nTAIL-MARK",
+                              "exit_code": 0})
+            m = self.answer(m, c1, big)
+            c2 = self.ask(cl, m)
+            self.assertEqual(c2.finish_reason, "tool_calls")
+            results = sorted((self.tmp / "data").rglob("results/*.json"))
+            self.assertTrue(results)
+            sent = json.loads(results[0].read_text())["text"]
+            self.assertLessEqual(len(sent.encode()), RF.AGY_TOOL_RESULT_MAX_BYTES)
+            self.assertTrue(sent.endswith("TAIL-MARK"))
+        finally:
+            cl.close()
+
+    def test_a_request_that_does_not_answer_the_parked_call_recovers_the_turn(self):
+        cl = self.C.AntigravityClient(command=self.agy)
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "run two commands"}]
+            c1 = self.ask(cl, m)
+            self.assertEqual(c1.finish_reason, "tool_calls")
+            # The user interrupts: Hermes sends a new message instead of the tool result.
+            m2 = m + [{"role": "user", "content": "stop that, say hi"}]
+            c2 = self.ask(cl, m2)
+            self.assertEqual(c2.finish_reason, "tool_calls")
+            prompts = self.prompts()
+            self.assertEqual(len(prompts), 2)
+            self.assertIn("stop that, say hi", prompts[1]["prompt"])
+        finally:
+            cl.close()
+
+    def test_kill_switch_keeps_the_text_route(self):
+        with patch.dict(os.environ, {"AGY_NATIVE_TOOLS": "0"}):
+            cl = self.C.AntigravityClient(command=self.agy)
+            try:
+                c1 = self.ask(cl, [self.SYSTEM, {"role": "user", "content": "hello"}])
+                self.assertEqual(c1.finish_reason, "stop")
+            finally:
+                cl.close()
+        [p] = self.prompts()
+        self.assertIn("<tool_call>", p["prompt"])
+
+    def test_bridge_never_loaded_falls_back_to_text_calls(self):
+        with patch.dict(os.environ, {"FAKE_AGY_NO_MCP": "1"}), patch.object(self.C, "_BRIDGE_LIST_WAIT_SECONDS", 1.0):
+            cl = self.C.AntigravityClient(command=self.agy)
+            try:
+                c1 = self.ask(cl, [self.SYSTEM, {"role": "user", "content": "hello"}])
+                self.assertEqual(c1.finish_reason, "stop")
+                self.assertTrue(cl._native_failed)
+            finally:
+                cl.close()
+        [p] = self.prompts()
+        self.assertIn("<tool_call>", p["prompt"])
+
+    def test_gateway_restart_mid_call_rewinds_instead_of_resuming_a_dangling_call(self):
+        cl = self.C.AntigravityClient(command=self.agy)
+        m = [self.SYSTEM, {"role": "user", "content": "run two commands"}]
+        try:
+            c1 = self.ask(cl, m)
+        finally:
+            cl.close()
+        cl2 = self.C.AntigravityClient(command=self.agy)
+        try:
+            c2 = self.ask(cl2, self.answer(m, c1, "one"))
+            self.assertEqual(c2.finish_reason, "tool_calls")
+        finally:
+            cl2.close()
+        first, second = self.prompts()
+        # Not a delta on top of the unanswered call: the result is re-sent with its call.
+        self.assertIn("echo 1", second["prompt"])
+        self.assertIn("one", second["prompt"])
+
+
+class NativeGateAndPromptTests(unittest.TestCase):
+    def test_gate_allows_hermes_tools_only(self):
+        import tool_gate as G
+        allow = lambda name, args=None: G.decide({"toolCall": {"name": name, "args": args or {}}}, "", "/nonexistent")
+        self.assertEqual(allow("mcp_hermes_terminal")["decision"], "auto_approve")
+        self.assertEqual(allow("call_mcp_tool", {"ServerName": "hermes", "ToolName": "terminal"})["decision"],
+                         "auto_approve")
+        self.assertEqual(allow("call_mcp_tool", {"ServerName": "other"})["decision"], "deny")
+        self.assertEqual(allow("run_command", {"CommandLine": "ls"})["decision"], "deny")
+        self.assertEqual(allow("mcp_hermes_")["decision"], "deny")
+
+    def test_native_prompt_has_no_text_tool_format(self):
+        import prompt as P
+        msgs = [{"role": "system", "content": "S"}, {"role": "user", "content": "go"},
+                {"role": "assistant", "content": None, "tool_calls": [
+                    {"id": "c1", "type": "function", "function": {"name": "terminal", "arguments": "{\"command\": \"ls\"}"}}]},
+                {"role": "tool", "tool_call_id": "c1", "content": "a.txt"}]
+        native = P._format_messages_as_prompt(msgs, tools=[TERMINAL_TOOL], native=True)
+        self.assertNotIn("<tool_call>", native)
+        self.assertIn("[Called tool terminal (c1)", native)
+        text = P._format_messages_as_prompt(msgs, tools=[TERMINAL_TOOL])
+        self.assertIn("<tool_call>", text)
+        self.assertNotIn("<tool_call>", P._format_delta_prompt(msgs[1:], native=True))
+
+    def test_mcp_config_lists_every_tool_eager_and_keeps_earlier_names(self):
+        import process as PR
+        home = Path(tempfile.mkdtemp())
+        try:
+            PR.write_mcp_config(home, ["terminal"])
+            PR.write_mcp_config(home, ["read_file"])
+            cfg = json.loads((home / ".gemini" / "config" / "mcp_config.json").read_text())["mcpServers"]["hermes"]
+            self.assertEqual(cfg["tools"], {"read_file": {"eager": True}, "terminal": {"eager": True}})
+            self.assertEqual(cfg["timeoutSeconds"], 3600)
+            self.assertTrue(cfg["args"][0].endswith("mcp_bridge.py"))
+        finally:
+            shutil.rmtree(home, ignore_errors=True)
+
+
+class BridgeNameTests(unittest.TestCase):
+    def test_long_and_unsafe_names_get_short_unique_aliases(self):
+        import process as PR
+        long = "mcp_on_demand_build_pipeline_steps_review_remediation_approved"
+        tools = [{"type": "function", "function": {"name": n, "parameters": {"type": "object"}}}
+                 for n in ("terminal", long, long + "_x", "odd.name")]
+        specs = PR.bridge_tool_specs(tools)
+        self.assertEqual(specs[0]["name"], "terminal")
+        aliases = [s["name"] for s in specs]
+        self.assertEqual(len(set(aliases)), 4)
+        for spec in specs:
+            self.assertLessEqual(len("mcp_hermes_" + spec["name"]), 64)
+            self.assertRegex(spec["name"], r"^[A-Za-z0-9_-]+$")
+        self.assertEqual([s["hermes_name"] for s in specs], ["terminal", long, long + "_x", "odd.name"])
+        self.assertIn(long, specs[1]["description"])
+
+    def test_bridge_parks_the_hermes_name_for_an_alias(self):
+        import subprocess
+        import process as PR
+        long = "mcp_on_demand_build_pipeline_steps_review_remediation_approved"
+        d = Path(tempfile.mkdtemp())
+        try:
+            spec = PR.bridge_tool_specs([{"type": "function", "function": {"name": long, "parameters": {"type": "object"}}}])
+            (d / "tools.json").write_text(json.dumps(spec))
+            p = subprocess.Popen([sys.executable, str(PR.MCP_BRIDGE_SCRIPT)], stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, text=True, env={**os.environ, "HERMES_AGY_BRIDGE_DIR": str(d)})
+            p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                                      "params": {"name": spec[0]["name"], "arguments": {"a": 1}}}) + "\n")
+            p.stdin.flush()
+            for _ in range(100):
+                if (d / "calls" / "000001.json").exists():
+                    break
+                time.sleep(0.05)
+            call = json.loads((d / "calls" / "000001.json").read_text())
+            self.assertEqual(call["name"], long)
+            (d / "results").mkdir(exist_ok=True)
+            (d / "results" / "000001.json").write_text(json.dumps({"text": "done", "is_error": False}))
+            reply = json.loads(p.stdout.readline())
+            self.assertEqual(reply["result"]["content"][0]["text"], "done")
+            p.stdin.close()
+            p.wait(5)
+        finally:
+            shutil.rmtree(d, ignore_errors=True)

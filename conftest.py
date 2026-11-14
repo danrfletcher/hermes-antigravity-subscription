@@ -39,6 +39,11 @@ PROFILE_NAME = "antigravity-subscription-directsdk"
 _ISOLATED_HOME: Path | None = None
 
 
+# The native tool route needs agy to load mcp_bridge.py; the suite's fake agy processes opt in
+# per test (FAKE_AGY_NATIVE_CALLS / AGY_NATIVE_TOOLS=1). Everything else runs the text route.
+os.environ.setdefault("AGY_NATIVE_TOOLS", "0")
+
+
 def _isolate_hermes_home() -> Path:
     """Point HERMES_HOME at an empty directory so discovery finds no plugins."""
     global _ISOLATED_HOME

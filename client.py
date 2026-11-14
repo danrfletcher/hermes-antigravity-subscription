@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import hashlib
 import json
 import logging
 import os
@@ -19,6 +20,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -41,6 +43,7 @@ try:
         AGY_MARKER_BASE_URL,
         _kill_process_tree,
         _own_process_group,
+        bridge_tool_specs,
         build_child_env,
         install_tool_gate,
         is_authenticated,
@@ -53,7 +56,9 @@ try:
         sync_isolated_token,
         terminate_process,
         write_media_read_permissions,
+        write_mcp_config,
     )
+    from .result_fit import clamp_read_file_args, fit_tool_result
     from .prompt import (
         _PROMPT_PREAMBLE,
         _ROLE_LABELS,
@@ -83,6 +88,7 @@ except ImportError:
         AGY_MARKER_BASE_URL,
         _kill_process_tree,
         _own_process_group,
+        bridge_tool_specs,
         build_child_env,
         install_tool_gate,
         is_authenticated,
@@ -95,7 +101,9 @@ except ImportError:
         sync_isolated_token,
         terminate_process,
         write_media_read_permissions,
+        write_mcp_config,
     )
+    from result_fit import clamp_read_file_args, fit_tool_result
     from prompt import (
         _PROMPT_PREAMBLE,
         _ROLE_LABELS,
@@ -120,6 +128,38 @@ logger = logging.getLogger(__name__)
 _DEFAULT_TIMEOUT_SECONDS = 300.0
 # Bad turns of one request (same messages) that are rewound and retried before giving up.
 MAX_RECOVERIES_PER_REQUEST = 3
+# How long a spawned worker may take to list the Hermes tools from mcp_bridge.py before this client
+# falls back to the text tool route (measured: about 0.3 s after spawn, before agy's init event).
+_BRIDGE_LIST_WAIT_SECONDS = 15.0
+# A parked call (mcp_bridge.py) outlives no longer than agy's own MCP timeout.
+_PARKED_CALL_MAX_SECONDS = 3600.0
+
+
+def native_tools_enabled() -> bool:
+    """Hermes' tools as native agy tools (mcp_bridge.py); AGY_NATIVE_TOOLS=0 forces the text route."""
+    return os.getenv("AGY_NATIVE_TOOLS", "1").strip().lower() not in ("0", "false", "no", "off")
+
+
+def _tool_result_text(content: Any) -> str:
+    """A Hermes tool message's content as the text the bridge returns to agy."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for part in content:
+            if isinstance(part, dict):
+                if part.get("type") == "text":
+                    parts.append(str(part.get("text") or ""))
+                elif part.get("type") in ("image_url", "image", "input_image"):
+                    parts.append("[image result: not passed through the native tool route]")
+                else:
+                    parts.append(json.dumps(part, ensure_ascii=False)[:2000])
+            else:
+                parts.append(str(part))
+        return "\n".join(parts)
+    if content is None:
+        return ""
+    return json.dumps(content, ensure_ascii=False)
 
 
 class AntigravityRecoveryExhausted(RuntimeError):
@@ -577,6 +617,20 @@ class AntigravityClient:
         self._worker_hashes: list[str] = []
         self._worker_tools_fp: str | None = None
         self._seen_conversation_id: str | None = None
+        # Native tool route (mcp_bridge.py): each worker gets a bridge directory with its tool set;
+        # a call the model makes is parked there until Hermes' next request carries its result.
+        self._native_tools = native_tools_enabled()
+        self._native_failed = False
+        self._bridge_root = Path(self._isolated_home) / ".gemini" / "hermes-bridge"
+        self._worker_bridge_dir: Path | None = None
+        self._worker_bridge_fp: str | None = None
+        self._worker_bridge_seq = 0
+        self._parked: dict[str, Any] | None = None
+        # Native route: per worker, [last real context tokens, result chars sent since]. A completion
+        # that ends on a parked call often carries no fresh agy usage (one model call can park several
+        # tool calls), and Hermes treats prompt_tokens=0 as "no usage" and falls back to a rough
+        # estimate that runs ~1.6x high on agy, compressing far too early.
+        self._native_context: dict[Any, list[int]] = {}
         # The Hermes session this client is bound to, and its ownership lock (session_store).
         self._session_id: str | None = None
         self._session_claim = None
@@ -730,6 +784,11 @@ class AntigravityClient:
 
     def _terminate_worker_locked(self, keep_conversation: bool = False) -> None:
         self._cancel_idle_timer_locked()
+        parked, self._parked = self._parked, None
+        if parked is not None:
+            # agy's conversation now ends inside a tool call that will never be answered: rewind
+            # the turn out on the next request (today's recovery), like any other bad turn.
+            self._mark_bad_turn("parked tool call abandoned", parked["messages"])
         if self._worker_proc is not None:
             proc = self._worker_proc
             self._worker_proc = None
@@ -738,8 +797,14 @@ class AntigravityClient:
             self._worker_history = []
             self._active_processes.discard(proc)
             self._worker_last_activity.pop(proc, None)
+            self._native_context.pop(proc, None)
             self._worker_cpu_at_activity.pop(proc, None)
             self._terminate_process(proc)
+        self._parked = None
+        bridge_dir, self._worker_bridge_dir, self._worker_bridge_fp = self._worker_bridge_dir, None, None
+        self._worker_bridge_seq = 0
+        if bridge_dir is not None:
+            shutil.rmtree(bridge_dir, ignore_errors=True)
         # The session is gone: any later usage from it belongs to a dead
         # session, and the next spawn must start from a clean baseline.
         self._worker_usage_baseline = {}
@@ -973,14 +1038,33 @@ class AntigravityClient:
         return True
 
     @staticmethod
-    def _instruction_header(messages, tools, tool_choice) -> str:
+    def _instruction_header(messages, tools, tool_choice, native: bool = False, model: str | None = None) -> str:
         """Tool protocol, tool catalog and Hermes system prompt, as in the first full prompt."""
         system = [m for m in messages if isinstance(m, dict) and m.get("role") in ("system", "developer")]
-        header = _format_messages_as_prompt(system, tools=tools, tool_choice=tool_choice)
+        header = _format_messages_as_prompt(system, model=model, tools=tools, tool_choice=tool_choice,
+                                            native=native)
         tail = "Continue the conversation from the latest message."
         if header.endswith(tail):
             header = header[: -len(tail)].rstrip()
         return "### STANDING INSTRUCTIONS (restated; they replace any earlier version):\n\n" + header
+
+    def _note_native_context(self, proc: Any, tokens: int) -> None:
+        """A real context reading from agy (one model call's input plus cache reads)."""
+        if tokens > 0:
+            with self._lock:
+                self._native_context[proc] = [int(tokens), 0]
+
+    def _note_native_result_chars(self, proc: Any, chars: int) -> None:
+        with self._lock:
+            ctx = self._native_context.get(proc)
+            if ctx is not None:
+                ctx[1] += max(0, int(chars))
+
+    def native_context_estimate(self, proc: Any) -> int:
+        """The worker's context now: its last real reading plus the results sent since (4 chars a token)."""
+        with self._lock:
+            ctx = self._native_context.get(proc)
+            return ctx[0] + ctx[1] // 4 if ctx else 0
 
     def _note_checkpoint(self) -> None:
         """agy compacted the conversation: restate the standing instructions on the next turn."""
@@ -992,7 +1076,7 @@ class AntigravityClient:
             return False
         return (Path(self._isolated_gemini_dir) / "conversations" / f"{conversation_id}.db").exists()
 
-    def _fit_full_prompt(self, messages, *, model, tools, tool_choice) -> tuple[str, bool]:
+    def _fit_full_prompt(self, messages, *, model, tools, tool_choice, native: bool = False) -> tuple[str, bool]:
         """Full-history prompt that stays under agy's single-message limit (UTF-8 bytes).
 
         agy silently keeps only the beginning of an oversized message. In order, until it fits:
@@ -1005,7 +1089,7 @@ class AntigravityClient:
         limit = _session_store.max_prompt_chars()
         size = _session_store.prompt_size
         fmt = functools.partial(_format_messages_as_prompt, model=model, tools=tools, tool_choice=tool_choice,
-                                media_sink=self._materialized_media)
+                                media_sink=self._materialized_media, native=native)
         prompt = fmt(messages, historical_tool_chars=20000)
         if size(prompt) <= limit:
             return prompt, False
@@ -1052,6 +1136,17 @@ class AntigravityClient:
         hashes = _session_store.message_hashes(messages)
         tools_fp = _session_store.instructions_fingerprint(messages, tools, tool_choice)
         persistent = self._bind_session(session_id)
+        bridge_fp = self._bridge_fp(tools)
+        with self._lock:
+            parked = self._parked
+        if parked is not None:
+            proc = self._answer_parked(messages, model=model, effort=effort, bridge_fp=bridge_fp)
+            if proc is not None:
+                # The worker carries on with the same agy turn: nothing new is sent to its stdin.
+                return proc, None, "answer"
+            logger.warning("Antigravity: the request does not answer the parked tool call(s); "
+                           "recovering the turn")
+            self._terminate_worker(keep_conversation=True)  # marks the parked turn bad
         self._recover_bad_turn(session_id, persistent)
         with self._lock:
             live = self._worker_proc is not None and self._worker_proc.poll() is None
@@ -1062,7 +1157,8 @@ class AntigravityClient:
             known = list(self._worker_hashes) if live or kept else []
             conversation_id = self._worker_conversation_id if live or kept else None
             known_tools = self._worker_tools_fp if live or kept else None
-            same_runtime = live and self._worker_model == model and self._worker_effort == effort
+            same_runtime = (live and self._worker_model == model and self._worker_effort == effort
+                            and self._worker_bridge_fp == bridge_fp)
         if not known and persistent:
             entry = self._store.get(session_id)
             if entry and self._conversation_exists(entry["conversation_id"]):
@@ -1075,8 +1171,10 @@ class AntigravityClient:
 
         mode, start, keep = _session_store.reconcile(known, hashes)
         full = None
+        native = bridge_fp is not None
         if mode == "rewind":
-            full, trimmed = self._fit_full_prompt(messages, model=model, tools=tools, tool_choice=tool_choice)
+            full, trimmed = self._fit_full_prompt(messages, model=model, tools=tools, tool_choice=tool_choice,
+                                                  native=native)
             if not trimmed or not conversation_id and not live:
                 mode = "fresh"  # exact replay fits: cleaner than asking agy to disregard turns
         if mode == "continue" and not live and not conversation_id:
@@ -1088,9 +1186,10 @@ class AntigravityClient:
                 if self._store is None:
                     # Per-client temp HOME: nothing else resumes these (never with a shared store HOME).
                     self._purge_isolated_conversations()
-            proc = self._get_or_spawn_worker(model, effort)
-            prompt = full if full is not None else self._fit_full_prompt(
-                messages, model=model, tools=tools, tool_choice=tool_choice)[0]
+            proc = self._get_or_spawn_worker(model, effort, tools=tools)
+            native_now = self._worker_is_native()
+            prompt = full if full is not None and native_now == native else self._fit_full_prompt(
+                messages, model=model, tools=tools, tool_choice=tool_choice, native=native_now)[0]
             branch = "full"
         else:
             if live and not same_runtime:
@@ -1101,14 +1200,15 @@ class AntigravityClient:
                 with self._lock:
                     proc = self._worker_proc
             else:
-                proc = self._get_or_spawn_worker(model, effort, conversation_id=conversation_id)
+                proc = self._get_or_spawn_worker(model, effort, conversation_id=conversation_id, tools=tools)
+            native = self._worker_is_native()
             if mode == "continue":
                 delta = list(messages[start:])
                 # agy produced the assistant turns that follow what it was last sent.
                 while delta and isinstance(delta[0], dict) and delta[0].get("role") == "assistant":
                     delta.pop(0)
                 prompt = _format_delta_prompt(delta, pending_user_text=_latest_user_text(messages),
-                                              media_sink=self._materialized_media)
+                                              media_sink=self._materialized_media, native=native)
                 branch = "delta" if live else "resume"
             else:
                 resend = list(messages[keep:]) or list(messages[-1:])
@@ -1123,11 +1223,12 @@ class AntigravityClient:
                 else:
                     note = ("[Retry] Disregard your previous answer to the latest message and answer it again.")
                 prompt = note + "\n\n" + _format_delta_prompt(resend, pending_user_text=_latest_user_text(messages),
-                                                                media_sink=self._materialized_media)
+                                                                media_sink=self._materialized_media,
+                                                                native=native)
                 branch = "rewind"
             if tools_fp != known_tools:
                 # New tools / edited system prompt, or agy compacted its history: restate them.
-                prompt = self._instruction_header(messages, tools, tool_choice) + "\n\n" + prompt
+                prompt = self._instruction_header(messages, tools, tool_choice, native=native, model=model) + "\n\n" + prompt
         with self._lock:
             self._worker_tools_fp = tools_fp
             note, self._recovery_note = self._recovery_note, None
@@ -1185,6 +1286,12 @@ class AntigravityClient:
         try:
             with self._lock:
                 if self._worker_proc is not proc:
+                    return
+                parked = self._parked
+                if (parked is not None and parked.get("proc") is proc
+                        and time.monotonic() - parked["since"] < _PARKED_CALL_MAX_SECONDS):
+                    # Hermes is still running the parked call (a long command, an approval).
+                    self._arm_idle_timer_locked()
                     return
                 logger.info("Terminating idle agy worker pid=%s", getattr(proc, "pid", None))
                 self._terminate_worker_locked(keep_conversation=True)
@@ -1261,11 +1368,175 @@ class AntigravityClient:
                 self._terminate_worker_locked(keep_conversation=True)
             self._worker_media_rules = frozenset(rules)
 
+    # ── Native tool route (mcp_bridge.py) ─────────────────────────────────────────────────
+
+    def _use_native(self, tools: list[dict[str, Any]] | None) -> bool:
+        return bool(tools) and self._native_tools and not self._native_failed
+
+    def _bridge_fp(self, tools: list[dict[str, Any]] | None) -> str | None:
+        """Identity of the tool set a native worker's bridge serves (None: text route)."""
+        if not self._use_native(tools):
+            return None
+        specs = bridge_tool_specs(tools)
+        return hashlib.sha256(json.dumps(specs, sort_keys=True).encode("utf-8")).hexdigest()[:16] if specs else None
+
+    def _worker_is_native(self) -> bool:
+        with self._lock:
+            return self._worker_bridge_dir is not None
+
+    def _await_bridge_calls(self, proc: subprocess.Popen, wait_seconds: float) -> list[dict[str, Any]]:
+        """The calls the worker's model just made through the bridge (parked there), oldest first.
+
+        Called by the stream on a native ``mcp_hermes_*`` tool step: the bridge writes the call a
+        moment after agy's hook approves it. Empty when nothing arrives in time or agy died.
+        """
+        with self._lock:
+            if self._worker_proc is not proc or self._worker_bridge_dir is None:
+                return []
+            bridge_dir, last = self._worker_bridge_dir, self._worker_bridge_seq
+        calls_dir = bridge_dir / "calls"
+        deadline = time.monotonic() + wait_seconds
+        found: list[Path] = []
+        while time.monotonic() < deadline:
+            found = sorted(p for p in calls_dir.glob("*.json") if p.stem.isdigit() and int(p.stem) > last) \
+                if calls_dir.is_dir() else []
+            if found:
+                time.sleep(0.2)  # agy serialises calls; a sibling would land within this
+                found = sorted(p for p in calls_dir.glob("*.json") if p.stem.isdigit() and int(p.stem) > last)
+                break
+            if proc.poll() is not None:
+                return []
+            time.sleep(0.05)
+        calls = []
+        for path in found:
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            seq = int(path.stem)
+            name = str(data.get("name") or "")
+            args = clamp_read_file_args(name, data.get("arguments"))
+            calls.append({"seq": seq, "id": f"call_mcp_{bridge_dir.name}_{seq}",
+                          "name": name,
+                          "arguments": json.dumps(args if isinstance(args, dict) else {}, ensure_ascii=False)})
+        if calls:
+            with self._lock:
+                if self._worker_proc is proc:
+                    self._worker_bridge_seq = max(self._worker_bridge_seq, calls[-1]["seq"])
+        return calls
+
+    def _park_worker(self, proc: subprocess.Popen, calls: list[dict[str, Any]],
+                     messages: list[dict[str, Any]] | None) -> bool:
+        """The stream ended this completion on parked calls: wait for Hermes' results.
+
+        The worker's recorded history stays where the agy turn began (the rewind point too), so a
+        parked call that is never answered rewinds the whole turn. The store entry is flagged, so a
+        gateway restart mid-call resumes from the rewound conversation, not a dangling call.
+        """
+        msgs = list(messages or [])
+        with self._lock:
+            if self._worker_proc is not proc:
+                return False
+            self._parked = {"proc": proc, "calls": {c["id"]: c["seq"] for c in calls},
+                            "messages": msgs, "hashes": _session_store.message_hashes(msgs),
+                            "since": time.monotonic(), "model": self._worker_model,
+                            "effort": self._worker_effort, "bridge_fp": self._worker_bridge_fp}
+            self._recovery_key, self._recovery_count = None, 0
+            self._arm_idle_timer_locked()
+            session_id = self._session_id if self._session_claim is not None else None
+        if self._store is not None and session_id:
+            with contextlib.suppress(Exception):
+                self._store.mark_bad(session_id, "a tool call was in flight")
+        return True
+
+    def _answer_parked(self, messages: list[dict[str, Any]], *, model: str, effort: str | None,
+                       bridge_fp: str | None) -> subprocess.Popen | None:
+        """Hand Hermes' results for the parked calls to the bridge; the worker carries on.
+
+        Only when this request is exactly the parked one plus the assistant's calls and one result
+        for each, on the same worker and runtime. Anything else (an interrupt, a compressed or
+        edited history, a new tool set, another model) returns None and the turn is recovered.
+        """
+        with self._lock:
+            parked, proc, bridge_dir = self._parked, self._worker_proc, self._worker_bridge_dir
+        if parked is None or proc is None or parked.get("proc") is not proc or proc.poll() is not None:
+            return None
+        if bridge_dir is None or (parked["model"], parked["effort"], parked["bridge_fp"]) != (model, effort, bridge_fp):
+            return None
+        base = parked["hashes"]
+        if _session_store.message_hashes(messages[:len(base)]) != base:
+            return None
+        rest = [m for m in messages[len(base):]]
+        if not rest or not isinstance(rest[0], dict) or rest[0].get("role") != "assistant":
+            return None
+        ids = [tc.get("id") for tc in rest[0].get("tool_calls") or [] if isinstance(tc, dict)]
+        calls = parked["calls"]
+        if sorted(map(str, ids)) != sorted(calls):
+            return None
+        results = rest[1:]
+        if len(results) != len(ids) or any(
+                not isinstance(r, dict) or r.get("role") != "tool" or r.get("tool_call_id") not in calls
+                for r in results):
+            return None
+        results_dir = bridge_dir / "results"
+        results_dir.mkdir(parents=True, exist_ok=True)
+        names = {str(tc.get("id")): str((tc.get("function") or {}).get("name") or "")
+                 for tc in rest[0].get("tool_calls") or [] if isinstance(tc, dict)}
+        for r in results:
+            seq = calls[r["tool_call_id"]]
+            full = _tool_result_text(r.get("content"))
+            text = fit_tool_result(names.get(str(r["tool_call_id"]), ""), full)
+            if text is not full:
+                logger.info("Antigravity: tool result cut to fit agy's limit (%d -> %d bytes)",
+                            len(full.encode("utf-8")), len(text.encode("utf-8")))
+            tmp = results_dir / f"{seq:06d}.json.tmp"
+            tmp.write_text(json.dumps({"text": text}, ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp, results_dir / f"{seq:06d}.json")
+            self._note_native_result_chars(proc, len(text))
+        with self._lock:
+            if self._parked is parked:
+                self._parked = None
+            self._worker_last_activity[proc] = time.monotonic()
+            cpu = _worker_cpu_seconds(proc)
+            if cpu is not None:
+                self._worker_cpu_at_activity[proc] = cpu
+        return proc
+
+    def _prepare_bridge(self, tools: list[dict[str, Any]] | None) -> tuple[Path | None, str | None]:
+        """A fresh bridge directory holding this worker's tool set (None, None: text route)."""
+        if not self._use_native(tools):
+            return None, None
+        specs = bridge_tool_specs(tools)
+        if not specs:
+            return None, None
+        try:
+            bridge_dir = self._bridge_root / uuid.uuid4().hex[:12]
+            bridge_dir.mkdir(parents=True)
+            (bridge_dir / "tools.json").write_text(json.dumps(specs, ensure_ascii=False), encoding="utf-8")
+            write_mcp_config(self._isolated_home, [spec["name"] for spec in specs])
+        except Exception:
+            logger.warning("Antigravity: could not set up the native tool bridge; using text tool calls",
+                           exc_info=True)
+            return None, None
+        return bridge_dir, self._bridge_fp(tools)
+
+    @staticmethod
+    def _wait_bridge_listed(proc: subprocess.Popen, bridge_dir: Path) -> bool:
+        deadline = time.monotonic() + _BRIDGE_LIST_WAIT_SECONDS
+        while time.monotonic() < deadline:
+            if (bridge_dir / "listed").exists():
+                return True
+            if proc.poll() is not None:
+                return False
+            time.sleep(0.05)
+        return False
+
     def _get_or_spawn_worker(
         self,
         model: str,
         effort: str | None,
         conversation_id: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
     ) -> subprocess.Popen:
         with self._lock:
             if (
@@ -1273,6 +1544,7 @@ class AntigravityClient:
                 and self._worker_proc.poll() is None
                 and self._worker_model == model
                 and self._worker_effort == effort
+                and self._worker_bridge_fp == self._bridge_fp(tools)
                 and (conversation_id is None or conversation_id == self._worker_conversation_id)
             ):
                 # A continuation turn reuses the worker without respawning it.
@@ -1304,6 +1576,10 @@ class AntigravityClient:
             if effort:
                 cmd_args.extend(["--effort", effort])
 
+            bridge_dir, bridge_fp = self._prepare_bridge(tools)
+            env = self._child_env()
+            if bridge_dir is not None:
+                env["HERMES_AGY_BRIDGE_DIR"] = str(bridge_dir)
             proc = subprocess.Popen(
                 cmd_args,
                 stdin=subprocess.PIPE,
@@ -1314,13 +1590,14 @@ class AntigravityClient:
                 errors="replace",
                 bufsize=1,
                 cwd=self._cwd,
-                env=self._child_env(),
+                env=env,
                 **_own_process_group(),
             )
             start_stderr_drainer(proc)
             self._worker_proc = proc
             self._worker_model = model
             self._worker_effort = effort
+            self._worker_bridge_dir, self._worker_bridge_fp, self._worker_bridge_seq = bridge_dir, bridge_fp, 0
             self._worker_history = list(self._conversation_history) if conversation_id else []
             if conversation_id:
                 self._worker_conversation_id = conversation_id
@@ -1344,6 +1621,15 @@ class AntigravityClient:
             # which _reap_idle_worker respects, and the turn's own completion
             # re-arms the countdown, so arming here cannot cut a turn short.
             self._arm_idle_timer_locked()
+            if bridge_dir is not None and not self._wait_bridge_listed(proc, bridge_dir):
+                # E4: the bridge did not start or agy never asked it for tools (an agy upgrade?).
+                logger.warning("Antigravity: agy did not load the native tool bridge within %.0fs; "
+                               "this client uses text tool calls from now on", _BRIDGE_LIST_WAIT_SECONDS)
+                self._native_failed = True
+                self._terminate_worker_locked(keep_conversation=bool(conversation_id))
+                return self._get_or_spawn_worker(model, effort, conversation_id=conversation_id, tools=tools)
+            if bridge_dir is not None:
+                logger.info("Antigravity: native tool route, %d Hermes tools", len(bridge_tool_specs(tools)))
             return proc
 
     def _run_oneshot_completion(
@@ -1476,26 +1762,29 @@ class AntigravityClient:
                 )
                 comparable_full_send = branch == "full"
                 logger.info("Antigravity turn: branch=%s session=%s chars=%d", branch,
-                            session_id or "-", len(prompt_payload))
-                dump_prompt_debug(
-                    prompt=prompt_payload,
-                    branch=branch,
-                    model=resolved_model,
-                    messages=messages_list,
-                )
+                            session_id or "-", len(prompt_payload or ""))
+                if prompt_payload is not None:
+                    dump_prompt_debug(
+                        prompt=prompt_payload,
+                        branch=branch,
+                        model=resolved_model,
+                        messages=messages_list,
+                    )
 
                 event_msg = {"event": "user", "message": {"content": prompt_payload}}
                 try:
-                    proc.stdin.write(json.dumps(event_msg) + "\n")
-                    proc.stdin.flush()
+                    if prompt_payload is not None:  # "answer": the results went through the bridge
+                        proc.stdin.write(json.dumps(event_msg) + "\n")
+                        proc.stdin.flush()
                 except (BrokenPipeError, OSError):
                     comparable_full_send = True
                     self._terminate_worker()
                     if self._store is None:
                         self._purge_isolated_conversations()
-                    proc = self._get_or_spawn_worker(resolved_model, effort)
+                    proc = self._get_or_spawn_worker(resolved_model, effort, tools=tools)
                     prompt_payload = self._fit_full_prompt(
-                        messages_list, model=resolved_model, tools=tools, tool_choice=tool_choice
+                        messages_list, model=resolved_model, tools=tools, tool_choice=tool_choice,
+                        native=self._worker_is_native(),
                     )[0]
                     dump_prompt_debug(
                         prompt=prompt_payload,
@@ -1520,9 +1809,10 @@ class AntigravityClient:
                     worker_lock_held=worker_acquired,
                     messages=messages_list,
                     usage_baseline=worker_usage_baseline,
-                    prompt_chars=len(prompt_payload),
+                    prompt_chars=len(prompt_payload or ""),
                     delivery_watch=self._delivery_watch if comparable_full_send else None,
                     delivery_sample_key=f"{resolved_model}:{effort}",
+                    native=self._worker_is_native(),
                 )
                 if stream:
                     return stream_iter
@@ -1534,6 +1824,8 @@ class AntigravityClient:
                         break
                     if not _stderr_shows_auth_contention(proc):
                         break
+                    if prompt_payload is None:
+                        break  # a parked call's answer cannot be re-sent to a new worker
                     # Token contention with another agy session on this
                     # account: the worker produced no result and its stderr
                     # carries the token-source failure. Re-sync the token and
@@ -1548,7 +1840,7 @@ class AntigravityClient:
                     with self._lock:
                         self._terminate_worker_locked(keep_conversation=True)
                     proc = self._get_or_spawn_worker(
-                        resolved_model, effort, conversation_id=self._worker_conversation_id
+                        resolved_model, effort, conversation_id=self._worker_conversation_id, tools=tools
                     )
                     event_msg = {"event": "user", "message": {"content": prompt_payload}}
                     try:
@@ -1570,9 +1862,10 @@ class AntigravityClient:
                         worker_lock_held=True,
                         messages=messages_list,
                         usage_baseline=worker_usage_baseline,
-                        prompt_chars=len(prompt_payload),
+                        prompt_chars=len(prompt_payload or ""),
                         delivery_watch=self._delivery_watch if comparable_full_send else None,
                         delivery_sample_key=f"{resolved_model}:{effort}",
+                        native=self._worker_is_native(),
                     )
                 try:
                     return completion
