@@ -41,7 +41,7 @@ def _proc(lines, poll=0):
     return proc
 
 
-def _run(lines, *, is_worker=False, poll=0):
+def _run(lines, *, is_worker=False, poll=0, tools=None):
     proc = _proc(lines, poll=poll)
     client = MagicMock()
     client._isolated_gemini_dir = None
@@ -58,7 +58,7 @@ def _run(lines, *, is_worker=False, poll=0):
         client=client,
         model="fixture",
         timeout=5.0,
-        tools=[{"type": "function", "function": {"name": "read_file"}}],
+        tools=tools or [{"type": "function", "function": {"name": "read_file"}}],
         is_worker=is_worker,
         messages=[{"role": "user", "content": "go"}],
         **kwargs,
@@ -153,12 +153,14 @@ def test_full_response_only_in_result_event_is_trimmed_too():
 # ---------------------------------------------------------------------------
 
 
-def _tool_step(name, state, error=None):
-    info = {"name": name, "parameters": {}}
+def _tool_step(name, state, error=None, params=None, index=None):
+    info = {"name": name, "parameters": {"AbsolutePath": "/x/y.py"} if params is None else params}
     if error:
         info["error"] = {"type": "TOOL_ERROR", "message": error}
-    return json.dumps({"event": "step_update", "step_update": {
-        "step_type": "tool", "tool_name": name, "state": state, "tool_info": info}})
+    step = {"step_type": "tool", "tool_name": name, "state": state, "tool_info": info}
+    if index is not None:
+        step["step_index"] = index
+    return json.dumps({"event": "step_update", "step_update": step})
 
 
 DENIED = "tool call denied by pre-tool hook: headless inference mode"
@@ -256,3 +258,79 @@ def test_silence_cuts_a_hung_turn(monkeypatch):
     with pytest.raises(RuntimeError, match="no output from agy"):
         list(stream)
     assert _time.monotonic() - started < 5
+
+
+HERMES_TOOLS = [
+    {"type": "function", "function": {"name": "read_file", "parameters": {
+        "type": "object", "properties": {"path": {}, "offset": {}, "limit": {}}, "required": ["path"]}}},
+    {"type": "function", "function": {"name": "terminal", "parameters": {
+        "type": "object", "properties": {"command": {}, "timeout": {}}, "required": ["command"]}}},
+]
+
+
+def _batch(*calls):
+    """A parallel batch of native function calls, as agy streams it (ACTIVE then ERROR each)."""
+    lines = []
+    for i, (name, params) in enumerate(calls, start=2):
+        lines += [_tool_step(name, "ACTIVE", params=params, index=i),
+                  _tool_step(name, "ERROR", DENIED, params=params, index=i)]
+    return lines
+
+
+def _response_step(text="I will request the tools as text instead."):
+    return json.dumps({"event": "step_update", "step_update": {"step_type": "agent_response", "text_delta": text}})
+
+
+def test_hermes_tools_called_natively_are_salvaged_and_the_turn_is_cut():
+    # The live 4f5b shape: four Hermes calls in one model response, all denied by the hook.
+    lines = _batch(("read_file", {"path": "/repo/a.py"}), ("read_file", {"path": "/repo/b.py", "limit": 50}),
+                   ("terminal", {"command": "git status"}), ("read_file", {"path": "/repo/c.py"}))
+    lines += [_response_step(), *_deltas(_call("dup", path="/repo/a.py")), _result()]
+    calls, content, finish, client, _p, stream = _run(lines, is_worker=True, poll=None, tools=HERMES_TOOLS)
+    assert [(c.function.name, json.loads(c.function.arguments)) for c in calls] == [
+        ("read_file", {"path": "/repo/a.py"}), ("read_file", {"path": "/repo/b.py", "limit": 50}),
+        ("terminal", {"command": "git status"}), ("read_file", {"path": "/repo/c.py"})]
+    assert len({c.id for c in calls}) == 4
+    assert finish == ["tool_calls"] and content == ""
+    assert "as native function calls" in stream._bad_turn  # rewound out on the next request
+    client._mark_bad_turn.assert_called_once()
+    client._terminate_worker.assert_called_once_with(keep_conversation=True)
+    client._update_worker_history.assert_not_called()
+
+
+def test_salvaged_calls_then_result_also_cut():
+    lines = _batch(("terminal", {"command": "ls"})) + [_result()]
+    calls, _c, finish, client, _p, stream = _run(lines, is_worker=True, poll=None, tools=HERMES_TOOLS)
+    assert [c.function.name for c in calls] == ["terminal"] and finish == ["tool_calls"]
+    assert stream._bad_turn
+
+
+def test_native_call_that_does_not_fit_a_hermes_schema_is_a_denial():
+    # agy's own read_file (CamelCase), an unknown argument, a missing required one: not salvaged.
+    for name, params in (("read_file", {"AbsolutePath": "/x"}), ("terminal", {"command": "ls", "Cwd": "/"}),
+                         ("terminal", {"timeout": 5}), ("run_command", {"command": "ls"})):
+        lines = _batch((name, params)) + _deltas(_call("a")) + [_result()]
+        calls, _c, finish, client, _p, stream = _run(lines, is_worker=True, poll=None, tools=HERMES_TOOLS)
+        assert [c.id for c in calls] == ["a"], (name, params)
+        assert stream._bad_turn is None
+
+
+def test_salvage_never_takes_a_granted_media_read(tmp_path):
+    img = tmp_path / "shot.png"
+    img.write_bytes(b"x")
+    from stream import salvage_native_call, hermes_tool_schemas
+    step = {"step_type": "tool", "tool_name": "read_file", "state": "ACTIVE",
+            "tool_info": {"name": "read_file", "parameters": {"path": str(img)}}}
+    assert salvage_native_call(step, hermes_tool_schemas(HERMES_TOOLS)) == ("read_file", json.dumps({"path": str(img)}))
+    # ...but the stream checks the media grant first: a referenced image stays agy's own attach.
+    lines = [json.dumps({"event": "step_update", "step_update": step})] + _deltas("a red square") + [_result()]
+    proc = _proc(lines, poll=0)
+    client = MagicMock()
+    client._isolated_gemini_dir = None
+    stream = AntigravityStream(proc=proc, client=client, model="fixture", timeout=5.0, tools=HERMES_TOOLS,
+                               is_worker=False,
+                               messages=[{"role": "user", "content": f"look [Image]({img})"}])
+    stream._is_permitted_native_media_step = lambda name, info: True
+    chunks = list(stream)
+    calls = [c for ch in chunks for choice in ch.choices for c in (choice.delta.tool_calls or [])]
+    assert calls == [] and stream._bad_turn is None

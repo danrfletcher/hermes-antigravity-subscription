@@ -131,6 +131,46 @@ def _tool_step_error(step: dict[str, Any]) -> str:
     return ""
 
 
+def hermes_tool_schemas(tools: list[dict[str, Any]] | None) -> dict[str, dict[str, Any]]:
+    """``{name: parameters schema}`` of the Hermes tools offered this turn."""
+    out: dict[str, dict[str, Any]] = {}
+    for tool in tools or []:
+        fn = tool.get("function") if isinstance(tool, dict) else None
+        if isinstance(fn, dict) and isinstance(fn.get("name"), str):
+            params = fn.get("parameters")
+            out[fn["name"]] = params if isinstance(params, dict) else {}
+    return out
+
+
+def salvage_native_call(step: dict[str, Any], schemas: dict[str, dict[str, Any]]) -> tuple[str, str] | None:
+    """A tool step that is really a Hermes tool call: ``(name, arguments JSON)``, else None.
+
+    Gemini 4 sometimes calls the Hermes tools from its prompt as real function calls (seen live:
+    ``terminal`` and ``read_file`` with Hermes' own argument names, four in parallel). agy cannot
+    run them and the hook denies them, but the call itself is valid: same name as a Hermes tool,
+    every argument a property of its schema, every required property present. agy's own tools
+    take CamelCase arguments (``CommandLine``, ``AbsolutePath``) and never fit.
+    """
+    info = step.get("tool_info")
+    if not isinstance(info, dict):
+        return None
+    name = str(info.get("name") or step.get("tool_name") or "")
+    params = info.get("parameters")
+    schema = schemas.get(name)
+    if schema is None or not isinstance(params, dict):
+        return None
+    props = schema.get("properties")
+    if isinstance(props, dict) and props:
+        if any(key not in props for key in params):
+            return None
+    elif params:
+        return None
+    required = schema.get("required")
+    if isinstance(required, list) and any(key not in params for key in required):
+        return None
+    return name, json.dumps(params, ensure_ascii=False)
+
+
 class _UsageDeltas(NamedTuple):
     """Per-turn usage derived from cumulative worker-session counters."""
 
@@ -278,6 +318,7 @@ class AntigravityStream(Iterator[Any]):
         self.model = model
         self.timeout = timeout
         self.has_tools = bool(tools)
+        self._tool_schemas = hermes_tool_schemas(tools)
         self.is_worker = is_worker
         self.worker_lock = worker_lock
         self.messages = messages
@@ -772,6 +813,8 @@ class AntigravityStream(Iterator[Any]):
         after_calls_text: str | None = None
         pre_call_text = ""
         hook_denials = 0
+        # step_index -> the Hermes call salvaged from a native function call (salvage_native_call).
+        salvaged_steps: dict[Any, str] = {}
         success = False
         start_time = time.monotonic()
         # File mtimes are wall-clock epoch seconds; durations and deadlines
@@ -885,7 +928,36 @@ class AntigravityStream(Iterator[Any]):
                     step = event.get("step_update", {})
                     if not self.conversation_id:
                         self.conversation_id = step.get("conversation_id", "")
-                    if step.get("step_type") == "tool":
+                    if salvaged_steps and step.get("step_type") != "tool":
+                        # agy has answered the salvaged calls with denials and the model is
+                        # responding to those: end the turn here. The calls are delivered; the
+                        # next request rewinds the native attempt out of agy's conversation and
+                        # sends the calls and Hermes' results as text.
+                        self._cut_bad_turn(
+                            f"model called {len(salvaged_steps)} Hermes tool(s) as native function calls")
+                        neutralized_tool_step = True
+                        stop_reason = "salvaged native calls"
+                        break
+                    salvaged = (salvage_native_call(step, self._tool_schemas)
+                                if step.get("step_type") == "tool" and self.has_tools
+                                and not self._is_permitted_native_media_step(
+                                    str(step.get("tool_name") or ""), str(step.get("tool_info") or ""))
+                                else None)
+                    if salvaged:
+                        key = step.get("step_index")
+                        key = salvaged if key is None else key
+                        if key not in salvaged_steps:
+                            salvaged_steps[key] = salvaged[0]
+                            logger.info("Antigravity: salvaged native call of Hermes tool '%s'", salvaged[0])
+                            if after_calls_text is None:
+                                after_calls_text = ""
+                            has_tool_calls = True
+                            call = SimpleNamespace(id=f"call_native_{len(salvaged_steps)}", type="function",
+                                                   function=SimpleNamespace(name=salvaged[0],
+                                                                            arguments=salvaged[1]))
+                            for call_delta in identify_calls([call]):
+                                yield self._make_chunk(tool_calls=[call_delta])
+                    elif step.get("step_type") == "tool":
                         tool_name = str(step.get("tool_name") or "")
                         if self._is_permitted_native_media_step(
                             tool_name, str(step.get("tool_info") or "")
@@ -1039,6 +1111,12 @@ class AntigravityStream(Iterator[Any]):
                             # Stop the generation now (it can run for minutes and burns quota).
                             self._cut_bad_turn(f"runaway: {why}")
                             break
+                elif event_type == "result" and salvaged_steps and not self._bad_turn:
+                    self._cut_bad_turn(
+                        f"model called {len(salvaged_steps)} Hermes tool(s) as native function calls")
+                    neutralized_tool_step = True
+                    stop_reason = "salvaged native calls"
+                    break
                 elif event_type == "result":
                     res = event.get("result", {})
                     if not self.conversation_id:
