@@ -531,7 +531,9 @@ _PROMPT_PREAMBLE = (
     # Antigravity") makes the model classify the preamble as prompt injection
     # and resist harder. This framing avoids contradicting agy's identity and
     # instead redirects the tool-calling protocol. (Issue #16)
-    "You are operating in HEADLESS INFERENCE MODE. In this mode, your native tools (run_command, write_to_file, view_file, edit_file, etc.) are disabled and will be silently rejected. Do not attempt to use them.",
+    # Reframed, not escalated (the hook in tool_gate.py is the control, never this wording): say
+    # what actually happens to a built-in tool call, and where tools come from instead.
+    "You are operating in HEADLESS INFERENCE MODE. The tools for this session come from Hermes Agent and are listed below. The runtime's own built-in tools (run_command, read_file, write_to_file, edit_file and the rest) are switched off here: a call to one is refused with a short note and nothing runs, so request every tool as a <tool_call> block instead.",
     "You are being used strictly as an LLM inference backend for Hermes Agent.",
     "All tool executions and filesystem interactions are performed exclusively by Hermes Agent on the host side.",
     "IMPORTANT INSTRUCTIONS FOR TOOLS:",
@@ -719,7 +721,22 @@ def _latest_user_text(messages: Sequence[Any]) -> str:
     return ""
 
 
-def _pending_user_request_section(user_text: str) -> str:
+# A restated request longer than this is quoted by its opening only: a worker's request is its whole
+# brief (tens of KB), already in the transcript or in agy's conversation, and restating it on every
+# tool turn multiplied it (E13).
+_OBJECTIVE_QUOTE_MAX_CHARS = 1500
+_OBJECTIVE_HEAD_CHARS = 600
+
+
+def _objective_quote(user_text: str, where: str) -> str:
+    """The request in full, or its opening plus where the full text is when it is long."""
+    if len(user_text) <= _OBJECTIVE_QUOTE_MAX_CHARS:
+        return user_text
+    return (user_text[:_OBJECTIVE_HEAD_CHARS].rstrip()
+            + f"\n[... the request continues ({len(user_text)} chars in all); its full text is {where} ...]")
+
+
+def _pending_user_request_section(user_text: str, where: str = "earlier in this conversation") -> str:
     """Restate the user request that the current tool loop is serving.
 
     Tool-result turns otherwise end with a generic "continue" line, so after a
@@ -728,7 +745,7 @@ def _pending_user_request_section(user_text: str) -> str:
     example re-sending an earlier completion report).
     """
     return (
-        f"### USER REQUEST THIS TOOL LOOP IS SERVING:\nUser:\n{user_text}\n\n"
+        f"### USER REQUEST THIS TOOL LOOP IS SERVING:\nUser:\n{_objective_quote(user_text, where)}\n\n"
         "INSTRUCTION: Use the tool results only to answer THIS request. "
         "When you have enough information, answer it directly and specifically. "
         "Do NOT repeat earlier reports or summaries from the transcript unless this request asks for them."
@@ -744,7 +761,7 @@ def _tool_loop_objective_section(user_text: str) -> str:
     """
     return (
         "### ACTIVE OBJECTIVE:\n"
-        f"The user request being served is:\n\"{user_text}\"\n\n"
+        f"The user request being served is:\n\"{_objective_quote(user_text, 'in the transcript below')}\"\n\n"
         "CRITICAL: The conversation transcript below contains prior history and the tool calls made so far. "
         "Use the tool results ONLY to address the ACTIVE OBJECTIVE above. "
         "When tool execution is complete, your final answer must directly address this objective. "
@@ -759,8 +776,17 @@ def _format_messages_as_prompt(
     tools: list[dict[str, Any]] | None = None,
     tool_choice: Any = None,
     media_sink: Optional[set] = None,
+    historical_tool_chars: int = 300,
+    keep_whole: Optional[set] = None,
 ) -> str:
-    """Assemble Hermes message history, system prompt, and tool schemas into a canonical prompt."""
+    """Assemble Hermes message history, system prompt, and tool schemas into a canonical prompt.
+
+    ``keep_whole``: ids (``id(message)``) of tool results never cut (the spec and plan reads a
+    worker must still follow after a fitted resend).
+
+    ``historical_tool_chars``: tool results older than the last 8 are cut to this length. The
+    persistent-conversation client raises it so a full resend keeps skill/workflow text the
+    model still has to follow, and only falls back to the short cut when the prompt is too big."""
     try:
         from agent.acp_openai_bridge import render_tool_bridge_sections
         tool_sections = render_tool_bridge_sections(tools, tool_choice)
@@ -794,7 +820,7 @@ def _format_messages_as_prompt(
         sections.append("### SYSTEM INSTRUCTIONS (HERMES AGENT):\n" + "\n\n".join(f"System:\n{p}" for p in system_parts))
 
     _HISTORICAL_TOOL_RETENTION_COUNT = 8
-    _HISTORICAL_TOOL_MAX_CHARS = 300
+    _HISTORICAL_TOOL_MAX_CHARS = historical_tool_chars
     _TOOL_MAX_CHARS_CAP = 20000
 
     transcript: list[str] = []
@@ -817,7 +843,9 @@ def _format_messages_as_prompt(
 
         if role == "tool":
             tool_id = str(message.get("tool_call_id") or message.get("name") or "tool").strip()
-            if i not in recent_tool_cutoff and len(rendered_content) > _HISTORICAL_TOOL_MAX_CHARS:
+            if keep_whole and id(message) in keep_whole:
+                pass
+            elif i not in recent_tool_cutoff and len(rendered_content) > _HISTORICAL_TOOL_MAX_CHARS:
                 rendered_content = (
                     rendered_content[:200]
                     + f"\n[... tool output truncated: {len(rendered_content)} chars ...]\n"
@@ -867,7 +895,7 @@ def _format_messages_as_prompt(
         user_text = _render_message_content(last_msg.get("content"), media_sink)
         sections.append(
             "### ACTIVE OBJECTIVE:\n"
-            f"The user has submitted a new request:\n\"{user_text}\"\n\n"
+            f"The user has submitted a new request:\n\"{_objective_quote(user_text, 'under LATEST USER REQUEST TO ANSWER at the end')}\"\n\n"
             "CRITICAL: The conversation transcript below is historical background. "
             "Do NOT silently continue prior tool execution loops or earlier coding tasks unless explicitly requested by the ACTIVE OBJECTIVE. "
             "Focus your attention on answering the new request."
@@ -889,7 +917,7 @@ def _format_messages_as_prompt(
         )
         pending = _latest_user_text(history_messages)
         if pending:
-            sections.append(_pending_user_request_section(pending))
+            sections.append(_pending_user_request_section(pending, "in the transcript above"))
     elif last_role == "user" and last_msg is not None:
         user_text = _latest_user_text(history_messages)
         if user_text:
@@ -983,9 +1011,9 @@ def _format_delta_prompt(
     if last_role == "tool":
         parts.append(
             "Continue the conversation from the latest tool result. "
-            "REMINDER: You are in HEADLESS INFERENCE MODE. Native tools are disabled. "
-            "If you need to call a tool, emit ONLY <tool_call>{...}</tool_call> blocks in your text output. "
-            "Do NOT invoke native tools directly."
+            "REMINDER: You are in HEADLESS INFERENCE MODE. Tools come from Hermes Agent. "
+            "If you need to call a tool, emit ONLY <tool_call>{...}</tool_call> blocks in your text output; "
+            "the runtime's built-in tools are switched off and only return a refusal."
         )
         if pending_user_text:
             parts.append(_pending_user_request_section(pending_user_text))
@@ -1046,6 +1074,65 @@ def _has_unfinished_tool_call_frame(text: str) -> bool:
         if close == -1:
             return True
         cursor = close + len(_TOOL_CALL_CLOSE)
+
+
+def _tool_call_run_end(text: str) -> int:
+    """End index of the first contiguous run of ``<tool_call>`` frames, or -1.
+
+    Returns the index just past the last frame of the first run when real
+    text (not whitespace, not another frame) follows it: everything from
+    there on was written after the model's tool calls and before Hermes ran
+    them, so it cannot be valid (the runaway shape: invented
+    ``Tool Result (call_N):`` blocks and calls premised on them). Returns -1
+    when there is no frame, the run is unfinished, or nothing but
+    whitespace follows it. Prose BEFORE the first frame is never affected.
+    """
+    start = text.find(_TOOL_CALL_OPEN)
+    if start == -1:
+        return -1
+    cursor = start
+    while True:
+        close = _find_tool_call_close(text, cursor + len(_TOOL_CALL_OPEN))
+        if close == -1:
+            return -1
+        end = close + len(_TOOL_CALL_CLOSE)
+        rest = text[end:]
+        nxt = end + (len(rest) - len(rest.lstrip()))
+        if nxt >= len(text):
+            return -1
+        if text.startswith(_TOOL_CALL_OPEN, nxt):
+            cursor = nxt
+            continue
+        return end
+
+
+# Lines only a runaway writes: the model continuing the plugin's flat history format past its
+# own turn (an invented result for a call Hermes has not run, or the next speaker's turn).
+_RUNAWAY_LINE_RE = re.compile(r"(?m)^[ \t>*_#-]*(?:Tool Result \(|Assistant:|User:)")
+_INVENTED_RESULT_RE = re.compile(r"(?m)^[ \t>*_#-]*Tool Result \(")
+# Prose after the calls that is longer than this is a runaway even without a marker line.
+RUNAWAY_TRAILING_MAX_CHARS = 8000
+
+
+def runaway_verdict(text_after_calls: str) -> str | None:
+    """Why text written AFTER the turn's tool calls makes the turn bad, or None.
+
+    Harmless trailing prose ("I'll wait for the results.") keeps the turn; an invented
+    ``Tool Result (call_N):`` block, a ``User:``/``Assistant:`` turn, another tool call
+    premised on what came before, or an endless tail does not.
+    """
+    if _RUNAWAY_LINE_RE.search(text_after_calls):
+        return "invented tool results or turns after the tool calls"
+    if _TOOL_CALL_OPEN in text_after_calls:
+        return "tool call written after text that followed the tool calls"
+    if len(text_after_calls) > RUNAWAY_TRAILING_MAX_CHARS:
+        return "long text after the tool calls"
+    return None
+
+
+def invented_result_marker(text: str) -> bool:
+    """True when answer text (before any tool call) carries an invented tool result."""
+    return bool(_INVENTED_RESULT_RE.search(text))
 
 
 def _tool_call_from_object(obj: Any, ordinal: int) -> Any | None:

@@ -8,9 +8,11 @@ existing Antigravity / Gemini subscription quota.
 from __future__ import annotations
 
 import contextlib
+import functools
 import json
 import logging
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -40,6 +42,7 @@ try:
         _kill_process_tree,
         _own_process_group,
         build_child_env,
+        install_tool_gate,
         is_authenticated,
         read_media_rules,
         reap_orphaned_plugin_workers,
@@ -67,6 +70,8 @@ try:
     from .delivery import DeliveryWatch
     from .stream import AntigravityStream, collect_stream_completion
     from .debug import dump_prompt_debug
+    from . import rewind as _rewind
+    from . import session_store as _session_store
 except ImportError:
     from models import (
         _FALLBACK_MODELS,
@@ -79,6 +84,7 @@ except ImportError:
         _kill_process_tree,
         _own_process_group,
         build_child_env,
+        install_tool_gate,
         is_authenticated,
         read_media_rules,
         reap_orphaned_plugin_workers,
@@ -106,10 +112,18 @@ except ImportError:
     from delivery import DeliveryWatch
     from stream import AntigravityStream, collect_stream_completion
     from debug import dump_prompt_debug
+    import rewind as _rewind
+    import session_store as _session_store
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 300.0
+# Bad turns of one request (same messages) that are rewound and retried before giving up.
+MAX_RECOVERIES_PER_REQUEST = 3
+
+
+class AntigravityRecoveryExhausted(RuntimeError):
+    """The same request went bad more than MAX_RECOVERIES_PER_REQUEST times in a row."""
 
 # agy prints these when its token source cannot be built — the signature of
 # OAuth contention with ANOTHER agy session on the same Google account (each
@@ -351,6 +365,48 @@ def _force_rmtree(path: str) -> None:
     shutil.rmtree(path, ignore_errors=True)
 
 
+# Spec and plan reads among the first steps of a worker's history stay whole in a fitted resend.
+_PINNED_READ_WINDOW = 12
+_SPEC_OR_PLAN_READ = re.compile(r"(?:briefs/[^\"'\s]*\.spec\.md|ticket-plan\.md)")
+
+
+def _step_groups(messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    """Messages grouped into steps: an assistant message with the tool results that answer it."""
+    groups: list[list[dict[str, Any]]] = []
+    for message in messages:
+        if message.get("role") == "tool" and groups:
+            groups[-1].append(message)
+        else:
+            groups.append([message])
+    return groups
+
+
+def _reads_spec_or_plan(group: list[dict[str, Any]]) -> bool:
+    head = group[0]
+    if head.get("role") != "assistant" or len(group) < 2:
+        return False
+    for call in head.get("tool_calls") or []:
+        fn = call.get("function") if isinstance(call, dict) else None
+        args = fn.get("arguments") if isinstance(fn, dict) else None
+        if _SPEC_OR_PLAN_READ.search(args if isinstance(args, str) else json.dumps(args or {})):
+            return True
+    return False
+
+
+def _migrate_store_home(root: Path) -> None:
+    """Move a store HOME from inside the workspace (older layout) to beside it.
+
+    Keeps every stored conversation resumable after the cwd move. Never overwrites.
+    """
+    old, new = root / "workspace" / "home", root / "home"
+    if old.is_dir() and not new.exists():
+        try:
+            os.replace(old, new)
+            logger.info("Antigravity: moved isolated HOME out of agy's cwd (%s -> %s)", old, new)
+        except OSError as exc:
+            logger.warning("Antigravity: could not move isolated HOME out of the workspace: %s", exc)
+
+
 class AntigravityClient:
     """OpenAI-compatible client facade driving Antigravity CLI.
 
@@ -394,14 +450,52 @@ class AntigravityClient:
         self._command = command or resolve_agy_command()
         self._args = list(args or ["--output-format", "stream-json", "--disable-slash-commands"])
         self._temp_dir = None
+        # Persistent conversations (dan/persistent-conversations): one agy conversation per
+        # Hermes session, resumable after restarts. Needs agy's conversation records to outlive
+        # this client, so the agy HOME lives in plugin data instead of a per-client temp dir.
+        self._store = None
+        # agy runs reads relative to its cwd, so the isolated HOME (which links the OAuth token)
+        # sits BESIDE agy's cwd, never inside it: <root>/home and <root>/workspace.
+        home_root = None
+        if not cwd and _session_store.persistence_enabled():
+            try:
+                self._store = _session_store.SessionStore()
+                home_root = self._store.base
+                workspace = home_root / "workspace"
+                workspace.mkdir(parents=True, exist_ok=True)
+                _migrate_store_home(home_root)
+                cwd = str(workspace)
+            except Exception as exc:  # never block the provider on plugin-data trouble
+                logger.warning("Antigravity: persistent conversations disabled (%s)", exc)
+                self._store = None
+                home_root = None
+                cwd = None
         if cwd:
             self._cwd = cwd
         else:
             self._temp_dir = tempfile.TemporaryDirectory(prefix="hermes_agy_")
-            self._cwd = self._temp_dir.name
+            home_root = Path(self._temp_dir.name)
+            workspace = home_root / "workspace"
+            workspace.mkdir(parents=True, exist_ok=True)
+            self._cwd = str(workspace)
 
-        # Isolate agy state and session index from the user's real ~/.gemini/antigravity-cli
-        self._isolated_home, self._isolated_gemini_dir = setup_isolated_home(self._cwd)
+        # Isolate agy state and session index from the user's real ~/.gemini/antigravity-cli.
+        # A caller-supplied cwd keeps its HOME inside it (the caller owns that layout).
+        self._isolated_home, self._isolated_gemini_dir = setup_isolated_home(
+            home_root if home_root is not None else self._cwd)
+        # Gate agy's own tools before any agy process starts in this HOME.
+        try:
+            install_tool_gate(self._isolated_home, self._isolated_gemini_dir)
+        except Exception:
+            logger.warning("Antigravity: could not install the native-tool gate", exc_info=True)
+        # Bad-turn recovery (see _mark_bad_turn / _recover_bad_turn).
+        self._pending_recovery: dict[str, Any] | None = None
+        self._recovery_key: tuple[int, str] | None = None
+        self._recovery_count = 0
+        self._recovery_note: str | None = None
+        # The conversation's shape just before the turn in flight was sent (rewind.read_point).
+        self._rewind_point: dict[str, Any] | None = None
+        self._rewind_backups = Path(self._isolated_home).parent / "rewind-backups"
 
         # A Hermes process that died without close() leaves its agy worker
         # orphaned, holding a conversation open on the shared account (the
@@ -478,6 +572,17 @@ class AntigravityClient:
         # CPU seconds at the last sign of life: the discriminator between a
         # silent abandoned turn and a silent busy one.
         self._worker_cpu_at_activity: dict[subprocess.Popen, float] = {}
+        # What the live agy conversation already holds (message hashes, see session_store),
+        # which agy conversation it is, and the tool set it was told about.
+        self._worker_hashes: list[str] = []
+        self._worker_tools_fp: str | None = None
+        self._seen_conversation_id: str | None = None
+        # The Hermes session this client is bound to, and its ownership lock (session_store).
+        self._session_id: str | None = None
+        self._session_claim = None
+        if self._store is not None:
+            with contextlib.suppress(Exception):
+                self._store.prune(self._isolated_gemini_dir)
 
     @staticmethod
     def _resolve_real_token_path() -> Path | None:
@@ -538,6 +643,7 @@ class AntigravityClient:
                 os.remove(path)
             except OSError:
                 pass
+        self._release_session()
         # Phase 2 -- remove the private workspace, retrying transient
         # failures. close() must never raise from cleanup and must never
         # leave the client half-closed (issue #4).
@@ -637,11 +743,15 @@ class AntigravityClient:
         # The session is gone: any later usage from it belongs to a dead
         # session, and the next spawn must start from a clean baseline.
         self._worker_usage_baseline = {}
-        # Full-send diagnostics compare only fresh-context requests, never
-        # session counters or deltas. Their reference survives worker resets.
+        # The agy conversation itself survives on disk (session_store keeps the last good state).
+        # keep_conversation=True (idle reap, media respawn, auth retry) keeps what the conversation
+        # holds so the next turn resumes it with --conversation and a delta.
         if not keep_conversation:
             self._worker_conversation_id = None
             self._conversation_history = []
+            self._worker_hashes = []
+            self._worker_tools_fp = None
+        self._seen_conversation_id = None
 
     def _terminate_worker(self, keep_conversation: bool = False) -> None:
         with self._lock:
@@ -661,12 +771,372 @@ class AntigravityClient:
                     if entry.is_file():
                         entry.unlink()
 
+    def _note_worker_conversation(self, conversation_id: str | None) -> None:
+        """Called by a worker stream before it records a successful turn."""
+        if conversation_id:
+            with self._lock:
+                self._seen_conversation_id = conversation_id
+
     def _update_worker_history(self, messages: list[dict[str, Any]] | None) -> None:
+        hashes = _session_store.message_hashes(list(messages or []))
         with self._lock:
+            self._recovery_key, self._recovery_count = None, 0
             msg_list = list(messages or [])
             self._worker_history = msg_list
             self._conversation_history = msg_list
+            self._worker_hashes = hashes
+            requested = self._worker_conversation_id
+            seen = self._seen_conversation_id
+            if seen:
+                self._worker_conversation_id = seen
+            conversation_id = self._worker_conversation_id
+            session_id = self._session_id if self._session_claim is not None else None
+            model, effort, tools_fp = self._worker_model, self._worker_effort, self._worker_tools_fp
             self._arm_idle_timer_locked()
+        if requested and seen and requested != seen:
+            logger.warning("Antigravity: resumed conversation %s came back as %s", requested, seen)
+        if self._store is not None and session_id and conversation_id:
+            try:
+                self._store.put(session_id, conversation_id=conversation_id, model=model, effort=effort,
+                                hashes=hashes, tools=tools_fp)
+            except Exception as exc:
+                logger.warning("Antigravity: could not record conversation for %s: %s", session_id, exc)
+        if conversation_id:
+            _rewind.drop_backups(self._rewind_backups, conversation_id)
+
+    # ── Bad-turn recovery ─────────────────────────────────────────────────────────────────
+
+    def _mark_bad_turn(self, reason: str, messages: list[dict[str, Any]] | None,
+                       conversation_id: str | None = None) -> None:
+        """A worker turn went bad (runaway, native tool, silence, failure); called by the stream.
+
+        Records what the conversation held BEFORE the turn (the in-memory state is only ever
+        advanced by a successful turn), so the next request can rewind the turn out of agy's
+        conversation and resume from there. The store entry is flagged too, so a resume after a
+        gateway restart never continues on top of the bad turn.
+        """
+        hashes = _session_store.message_hashes(list(messages or []))
+        key = (len(hashes), hashes[-1] if hashes else "")
+        with self._lock:
+            if key == self._recovery_key:
+                self._recovery_count += 1
+            else:
+                self._recovery_key, self._recovery_count = key, 1
+            if self._pending_recovery is None:
+                self._pending_recovery = {
+                    "conversation_id": self._worker_conversation_id or conversation_id or None,
+                    "good_hashes": list(self._worker_hashes),
+                    "tools_fp": self._worker_tools_fp,
+                    "reason": reason,
+                    "point": self._rewind_point,
+                }
+            session_id = self._session_id if self._session_claim is not None else None
+        if self._store is not None and session_id:
+            try:
+                self._store.mark_bad(session_id, reason)
+            except Exception as exc:
+                logger.warning("Antigravity: could not flag bad turn for %s: %s", session_id, exc)
+
+    def _rewind_bad_turn(self, pending: dict[str, Any]) -> bool:
+        """Delete the bad turn from agy's conversation so it resumes at the last good state.
+
+        False means the conversation could not be rewound safely; the caller falls back to a
+        fresh conversation with a fitted resend. agy is already stopped (``_recover_bad_turn``).
+        """
+        point = pending.get("point")
+        if not isinstance(point, dict) or point.get("conversation_id") != pending.get("conversation_id"):
+            logger.info("Antigravity rewind: no rewind point for this conversation")
+            return False
+        try:
+            _rewind.rewind(self._isolated_gemini_dir, point, backup_dir=self._rewind_backups,
+                           agy_version=self._agy_cli_version())
+        except _rewind.RewindRefused as exc:
+            logger.warning("Antigravity rewind refused: %s", exc)
+            return False
+        except Exception as exc:  # sqlite/OS trouble: the transaction rolled back
+            logger.warning("Antigravity rewind failed: %s", exc, exc_info=True)
+            return False
+        return True
+
+    def _agy_cli_version(self) -> str | None:
+        """Identity of the agy binary (resolved path, size, mtime): an upgrade changes it.
+
+        A stat, not ``agy --version``: it runs before every turn on a known conversation.
+        """
+        try:
+            path = shutil.which(self._command) or self._command
+            real = os.path.realpath(path)
+            st = os.stat(real)
+            return f"{real}:{st.st_size}:{int(st.st_mtime)}"
+        except (OSError, TypeError):
+            return None
+
+    def _record_rewind_point(self, session_id: str | None, persistent: bool,
+                             conversation_id: str | None, prompt: str) -> None:
+        """Before a turn on a known conversation is sent: remember where to cut back to."""
+        point = None
+        if conversation_id:
+            try:
+                point = _rewind.read_point(
+                    Path(self._isolated_gemini_dir) / "conversations" / f"{conversation_id}.db",
+                    conversation_id=conversation_id, prompt=prompt, agy_version=self._agy_cli_version())
+            except Exception as exc:
+                logger.debug("Antigravity: could not read the rewind point: %s", exc)
+        with self._lock:
+            self._rewind_point = point
+        if persistent:
+            try:
+                self._store.set_rewind_point(session_id, point)
+            except Exception as exc:
+                logger.debug("Antigravity: could not store the rewind point: %s", exc)
+
+    def _recover_bad_turn(self, session_id: str | None, persistent: bool) -> None:
+        """Before any send: clear up a turn the previous request left bad (GP4 / GP6 / GP7)."""
+        with self._lock:
+            pending = self._pending_recovery
+            count = self._recovery_count
+        stored = None
+        if pending is None and persistent:
+            entry = self._store.get(session_id)
+            if entry and entry.get("bad"):
+                stored = entry
+                pending = {"conversation_id": entry["conversation_id"],
+                           "good_hashes": list(entry.get("hashes") or []),
+                           "tools_fp": entry.get("tools"), "reason": entry["bad"],
+                           "point": entry.get("rewind")}
+        if pending is None:
+            return
+        if count > MAX_RECOVERIES_PER_REQUEST:
+            raise AntigravityRecoveryExhausted(
+                f"Antigravity: this request went bad {count} times in a row "
+                f"(last: {pending.get('reason')}); giving up after {MAX_RECOVERIES_PER_REQUEST} recoveries.")
+        # agy must not hold the conversation while it is edited.
+        self._terminate_worker(keep_conversation=True)
+        conversation_id = pending.get("conversation_id")
+        rewound = bool(conversation_id and pending.get("good_hashes")
+                       and self._conversation_exists(conversation_id)
+                       and self._rewind_bad_turn(pending))
+        logger.warning("Antigravity recovery (%s): %s", pending.get("reason"),
+                       "rewound the bad turn" if rewound else "fresh conversation with a fitted resend")
+        reason = str(pending.get("reason") or "")
+        with self._lock:
+            self._pending_recovery = None
+            self._rewind_point = None
+            if "' ran" in reason:
+                # The rewind takes the attempt out of the model's memory, not out of the world.
+                self._recovery_note = (
+                    f"[Note] An earlier attempt at this turn used a tool outside Hermes ({reason}); "
+                    "its effects may already be present.")
+            if rewound:
+                self._worker_conversation_id = conversation_id
+                self._worker_hashes = list(pending["good_hashes"])
+                self._conversation_history = []
+                self._worker_tools_fp = pending.get("tools_fp")
+        if not rewound:
+            self._terminate_worker()  # drops the in-memory conversation
+        if persistent:
+            try:
+                if rewound:
+                    entry = stored or self._store.get(session_id) or {}
+                    self._store.put(session_id, conversation_id=conversation_id,
+                                    model=entry.get("model"), effort=entry.get("effort"),
+                                    hashes=pending["good_hashes"], tools=pending.get("tools_fp"))
+                else:
+                    self._store.forget(session_id)
+            except Exception as exc:
+                logger.warning("Antigravity: could not update the store after recovery: %s", exc)
+
+    # ── Persistent conversations ───────────────────────────────────────────────────────────
+
+    def _release_session(self) -> None:
+        claim, self._session_claim, self._session_id = self._session_claim, None, None
+        if self._store is not None:
+            self._store.release(claim)
+
+    def _bind_session(self, session_id: str | None) -> bool:
+        """True when this client owns ``session_id``'s agy conversation (resume + record)."""
+        if self._store is None or not session_id:
+            return False
+        if self._session_id == session_id and self._session_claim is not None:
+            return True
+        if self._session_id is not None and self._session_id != session_id:
+            # Same Hermes agent, new chat (/new, /reset): the old conversation stays on disk.
+            self._terminate_worker()
+            self._release_session()
+        claim = self._store.try_claim(session_id)
+        self._session_id = session_id
+        if claim is None:
+            # Another live client drives this conversation (e.g. Hermes' background review):
+            # work in a private conversation instead of writing into the shared one.
+            return False
+        self._session_claim = claim
+        return True
+
+    @staticmethod
+    def _instruction_header(messages, tools, tool_choice) -> str:
+        """Tool protocol, tool catalog and Hermes system prompt, as in the first full prompt."""
+        system = [m for m in messages if isinstance(m, dict) and m.get("role") in ("system", "developer")]
+        header = _format_messages_as_prompt(system, tools=tools, tool_choice=tool_choice)
+        tail = "Continue the conversation from the latest message."
+        if header.endswith(tail):
+            header = header[: -len(tail)].rstrip()
+        return "### STANDING INSTRUCTIONS (restated; they replace any earlier version):\n\n" + header
+
+    def _note_checkpoint(self) -> None:
+        """agy compacted the conversation: restate the standing instructions on the next turn."""
+        with self._lock:
+            self._worker_tools_fp = None
+
+    def _conversation_exists(self, conversation_id: str | None) -> bool:
+        if not conversation_id:
+            return False
+        return (Path(self._isolated_gemini_dir) / "conversations" / f"{conversation_id}.db").exists()
+
+    def _fit_full_prompt(self, messages, *, model, tools, tool_choice) -> tuple[str, bool]:
+        """Full-history prompt that stays under agy's single-message limit (UTF-8 bytes).
+
+        agy silently keeps only the beginning of an oversized message. In order, until it fits:
+        older tool results kept long (skills, workflow files), then cut short; then whole older
+        steps (an assistant message with its tool results, never split) are left out, oldest first,
+        with a note. Always kept: the system prompt, the first user message (a worker's brief, or
+        Hermes' compaction summary), early reads of the ticket's spec and plan, and the newest steps.
+        Returns ``(prompt, trimmed)``.
+        """
+        limit = _session_store.max_prompt_chars()
+        size = _session_store.prompt_size
+        fmt = functools.partial(_format_messages_as_prompt, model=model, tools=tools, tool_choice=tool_choice,
+                                media_sink=self._materialized_media)
+        prompt = fmt(messages, historical_tool_chars=20000)
+        if size(prompt) <= limit:
+            return prompt, False
+        prompt = fmt(messages)
+        if size(prompt) <= limit:
+            return prompt, False
+
+        valid = [m for m in messages if isinstance(m, dict)]
+        system = [m for m in valid if m.get("role") in ("system", "developer")]
+        body = [m for m in valid if m.get("role") not in ("system", "developer")]
+        first = body[:1] if body and body[0].get("role") == "user" else []
+        groups = _step_groups(body[len(first):])
+        pinned = {gi for gi, group in enumerate(groups[:_PINNED_READ_WINDOW]) if _reads_spec_or_plan(group)}
+        keep_whole = {id(m) for gi in pinned for m in groups[gi] if m.get("role") == "tool"}
+
+        def render(keep_from: int, *, pin: bool = True) -> str:
+            kept_early = [m for gi in sorted(pinned) if pin and gi < keep_from for m in groups[gi]]
+            left_out = sum(len(groups[gi]) for gi in range(keep_from) if not (pin and gi in pinned))
+            note = [{"role": "system", "content": (
+                f"Note: {left_out} of the oldest messages of this conversation are not shown (earlier "
+                "tool calls and their results), because the full history is larger than one Antigravity "
+                "prompt allows. Files on disk already reflect that work: re-read them when you need their "
+                "current state instead of redoing it.")}] if left_out else []
+            tail = [m for group in groups[keep_from:] for m in group]
+            return fmt(system + note + first + kept_early + tail, keep_whole=keep_whole if pin else None)
+
+        best = None
+        for pin in (True, False):
+            lo, hi = 1, len(groups) - 1  # always keep the newest step
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                candidate = render(mid, pin=pin)
+                if size(candidate) <= limit:
+                    best, hi = candidate, mid - 1
+                else:
+                    lo = mid + 1
+            if best is not None:
+                return best, True
+        logger.warning("Antigravity: even the newest step alone is larger than one prompt allows")
+        return render(max(len(groups) - 1, 0), pin=False), True
+
+    def _prepare_worker_turn(self, *, session_id, model, effort, messages, tools, tool_choice):
+        """``(proc, prompt, branch)`` for the next worker turn: send agy only what it has not seen."""
+        hashes = _session_store.message_hashes(messages)
+        tools_fp = _session_store.instructions_fingerprint(messages, tools, tool_choice)
+        persistent = self._bind_session(session_id)
+        self._recover_bad_turn(session_id, persistent)
+        with self._lock:
+            live = self._worker_proc is not None and self._worker_proc.poll() is None
+            # A worker stopped with keep_conversation (idle reap, media respawn) leaves what its
+            # conversation holds in memory, so it resumes even without a session store.
+            kept = (not live and bool(self._worker_conversation_id) and bool(self._worker_hashes)
+                    and self._conversation_exists(self._worker_conversation_id))
+            known = list(self._worker_hashes) if live or kept else []
+            conversation_id = self._worker_conversation_id if live or kept else None
+            known_tools = self._worker_tools_fp if live or kept else None
+            same_runtime = live and self._worker_model == model and self._worker_effort == effort
+        if not known and persistent:
+            entry = self._store.get(session_id)
+            if entry and self._conversation_exists(entry["conversation_id"]):
+                known = list(entry.get("hashes") or [])
+                conversation_id = entry["conversation_id"]
+                known_tools = entry.get("tools")
+                if live:  # a live worker with nothing recorded belongs to no conversation we know
+                    self._terminate_worker()
+                    live = same_runtime = False
+
+        mode, start, keep = _session_store.reconcile(known, hashes)
+        full = None
+        if mode == "rewind":
+            full, trimmed = self._fit_full_prompt(messages, model=model, tools=tools, tool_choice=tool_choice)
+            if not trimmed or not conversation_id and not live:
+                mode = "fresh"  # exact replay fits: cleaner than asking agy to disregard turns
+        if mode == "continue" and not live and not conversation_id:
+            mode = "fresh"
+
+        if mode == "fresh":
+            if live or conversation_id:
+                self._terminate_worker()
+                if self._store is None:
+                    # Per-client temp HOME: nothing else resumes these (never with a shared store HOME).
+                    self._purge_isolated_conversations()
+            proc = self._get_or_spawn_worker(model, effort)
+            prompt = full if full is not None else self._fit_full_prompt(
+                messages, model=model, tools=tools, tool_choice=tool_choice)[0]
+            branch = "full"
+        else:
+            if live and not same_runtime:
+                # Model/effort switch: same conversation, new runtime (resume is model-agnostic).
+                self._terminate_worker()
+                live = False
+            if live:
+                with self._lock:
+                    proc = self._worker_proc
+            else:
+                proc = self._get_or_spawn_worker(model, effort, conversation_id=conversation_id)
+            if mode == "continue":
+                delta = list(messages[start:])
+                # agy produced the assistant turns that follow what it was last sent.
+                while delta and isinstance(delta[0], dict) and delta[0].get("role") == "assistant":
+                    delta.pop(0)
+                prompt = _format_delta_prompt(delta, pending_user_text=_latest_user_text(messages),
+                                              media_sink=self._materialized_media)
+                branch = "delta" if live else "resume"
+            else:
+                resend = list(messages[keep:]) or list(messages[-1:])
+                anchor_index = keep - 1 if messages[keep:] else len(messages) - 2
+                anchor = (_render_message_content(messages[anchor_index].get("content"))
+                          if 0 <= anchor_index < len(messages) and isinstance(messages[anchor_index], dict) else "")
+                if messages[keep:]:
+                    note = ("[Conversation edited] The user withdrew the latest part of this conversation. "
+                            "Disregard every message after the one that begins: \"" + anchor[:200].replace("\n", " ")
+                            + "\" -- your replies and any tool results after it no longer apply. "
+                            "Continue from the messages below.")
+                else:
+                    note = ("[Retry] Disregard your previous answer to the latest message and answer it again.")
+                prompt = note + "\n\n" + _format_delta_prompt(resend, pending_user_text=_latest_user_text(messages),
+                                                                media_sink=self._materialized_media)
+                branch = "rewind"
+            if tools_fp != known_tools:
+                # New tools / edited system prompt, or agy compacted its history: restate them.
+                prompt = self._instruction_header(messages, tools, tool_choice) + "\n\n" + prompt
+        with self._lock:
+            self._worker_tools_fp = tools_fp
+            note, self._recovery_note = self._recovery_note, None
+            point_conversation = self._worker_conversation_id if branch != "full" else None
+        if note:
+            prompt = note + "\n\n" + prompt
+        self._record_rewind_point(session_id, persistent, point_conversation or conversation_id
+                                  if branch != "full" else None, prompt)
+        return proc, prompt, branch
 
     def _cancel_idle_timer_locked(self) -> None:
         timer = self._worker_idle_timer
@@ -803,6 +1273,7 @@ class AntigravityClient:
                 and self._worker_proc.poll() is None
                 and self._worker_model == model
                 and self._worker_effort == effort
+                and (conversation_id is None or conversation_id == self._worker_conversation_id)
             ):
                 # A continuation turn reuses the worker without respawning it.
                 # Without a fresh baseline the abandon grace would be measured
@@ -851,6 +1322,8 @@ class AntigravityClient:
             self._worker_model = model
             self._worker_effort = effort
             self._worker_history = list(self._conversation_history) if conversation_id else []
+            if conversation_id:
+                self._worker_conversation_id = conversation_id
             # Stamp what the fresh worker's settings.json granted: agy reads
             # permissions only at spawn (verified: rewriting the file under a
             # live worker changes nothing for its next turn).
@@ -884,13 +1357,8 @@ class AntigravityClient:
         tool_choice: Any,
         stream: bool,
     ) -> Any:
-        prompt_text = _format_messages_as_prompt(
-            messages,
-            model=model,
-            tools=tools,
-            tool_choice=tool_choice,
-            media_sink=self._materialized_media,
-        )
+        # A oneshot is always a full-history prompt: fit it under agy's single-message limit (E7).
+        prompt_text, _ = self._fit_full_prompt(messages, model=model, tools=tools, tool_choice=tool_choice)
         dump_prompt_debug(
             prompt=prompt_text,
             branch="oneshot",
@@ -996,55 +1464,25 @@ class AntigravityClient:
         )
         if turn_media_paths:
             self._ensure_worker_media_permissions(turn_media_paths)
+        session_id = extra_kwargs.get("hermes_session_id")
+        session_id = str(session_id).strip() if session_id else None
 
         worker_acquired = self._worker_lock.acquire(blocking=False)
         if worker_acquired:
             try:
-                with self._lock:
-                    ref_history = (
-                        self._worker_history
-                        if (self._worker_proc is not None and self._worker_proc.poll() is None)
-                        else self._conversation_history
-                    )
-                    is_continuation = _messages_match_prefix(ref_history, messages_list)
-                    conv_id_to_resume = self._worker_conversation_id if is_continuation else None
-
-                comparable_full_send = not is_continuation
-                if is_continuation:
-                    proc = self._get_or_spawn_worker(
-                        resolved_model, effort, conversation_id=conv_id_to_resume
-                    )
-                    delta_msgs = messages_list[len(ref_history):]
-                    prompt_payload = _format_delta_prompt(
-                        delta_msgs,
-                        pending_user_text=_latest_user_text(messages_list),
-                        media_sink=self._materialized_media,
-                    )
-                    dump_prompt_debug(
-                        prompt=prompt_payload,
-                        branch="delta",
-                        model=resolved_model,
-                        messages=messages_list,
-                    )
-                else:
-                    with self._lock:
-                        if self._worker_proc is not None or self._worker_conversation_id:
-                            self._terminate_worker_locked(keep_conversation=False)
-                            self._purge_isolated_conversations()
-                    proc = self._get_or_spawn_worker(resolved_model, effort, conversation_id=None)
-                    prompt_payload = _format_messages_as_prompt(
-                        messages_list,
-                        model=resolved_model,
-                        tools=tools,
-                        tool_choice=tool_choice,
-                        media_sink=self._materialized_media,
-                    )
-                    dump_prompt_debug(
-                        prompt=prompt_payload,
-                        branch="full",
-                        model=resolved_model,
-                        messages=messages_list,
-                    )
+                proc, prompt_payload, branch = self._prepare_worker_turn(
+                    session_id=session_id, model=resolved_model, effort=effort,
+                    messages=messages_list, tools=tools, tool_choice=tool_choice,
+                )
+                comparable_full_send = branch == "full"
+                logger.info("Antigravity turn: branch=%s session=%s chars=%d", branch,
+                            session_id or "-", len(prompt_payload))
+                dump_prompt_debug(
+                    prompt=prompt_payload,
+                    branch=branch,
+                    model=resolved_model,
+                    messages=messages_list,
+                )
 
                 event_msg = {"event": "user", "message": {"content": prompt_payload}}
                 try:
@@ -1052,17 +1490,13 @@ class AntigravityClient:
                     proc.stdin.flush()
                 except (BrokenPipeError, OSError):
                     comparable_full_send = True
-                    with self._lock:
-                        self._terminate_worker_locked(keep_conversation=False)
+                    self._terminate_worker()
+                    if self._store is None:
                         self._purge_isolated_conversations()
-                    proc = self._get_or_spawn_worker(resolved_model, effort, conversation_id=None)
-                    prompt_payload = _format_messages_as_prompt(
-                        messages_list,
-                        model=resolved_model,
-                        tools=tools,
-                        tool_choice=tool_choice,
-                        media_sink=self._materialized_media,
-                    )
+                    proc = self._get_or_spawn_worker(resolved_model, effort)
+                    prompt_payload = self._fit_full_prompt(
+                        messages_list, model=resolved_model, tools=tools, tool_choice=tool_choice
+                    )[0]
                     dump_prompt_debug(
                         prompt=prompt_payload,
                         branch="retry",

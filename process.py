@@ -61,6 +61,60 @@ import json as _json
 _MEDIA_RULE_TOOLS = ("read_file", "view_file")
 
 
+# Native-tool gate (see tool_gate.py). Deny rules are the second layer under the hook: narrow on
+# purpose. A read_file(*) deny would also block agy's media attach, which reads through read_file.
+NATIVE_TOOL_DENY_RULES = ("command(*)", "write_file(*)", "mcp(*)", "execute_url(*)")
+TOOL_GATE_SCRIPT = Path(__file__).resolve().parent / "tool_gate.py"
+
+
+def install_tool_gate(isolated_home: str | Path, isolated_gemini_dir: str | Path,
+                      python: str | None = None) -> Path:
+    """Gate every native agy tool in this isolated HOME: PreToolUse hook plus deny rules.
+
+    agy reads ``$HOME/.gemini/config/hooks.json`` (not loadable via --settings) and runs the hook
+    with a stripped environment, so the command uses absolute paths only. Idempotent; called
+    before any agy process starts in this HOME. Returns the hooks.json path.
+    """
+    import shlex
+    import sys as _sys
+
+    home = Path(isolated_home)
+    gemini_dir = Path(isolated_gemini_dir)
+    settings_path = gemini_dir / "settings.json"
+    command = " ".join(shlex.quote(str(p)) for p in (
+        python or _sys.executable, TOOL_GATE_SCRIPT, settings_path, home))
+    hooks = {"hermes-native-tool-gate": {"PreToolUse": [
+        {"matcher": "*", "hooks": [{"type": "command", "command": command, "timeout": 10}]}]}}
+    hooks_path = home / ".gemini" / "config" / "hooks.json"
+    hooks_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = hooks_path.with_suffix(".json.tmp")
+    tmp.write_text(_json.dumps(hooks, indent=1), encoding="utf-8")
+    os.replace(tmp, hooks_path)
+
+    try:
+        settings = _json.loads(settings_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        settings = {}
+    if not isinstance(settings, dict):
+        settings = {}
+    permissions = settings.get("permissions")
+    if not isinstance(permissions, dict):
+        permissions = {}
+    deny = permissions.get("deny")
+    if not isinstance(deny, list):
+        deny = []
+    for rule in NATIVE_TOOL_DENY_RULES:
+        if rule not in deny:
+            deny.append(rule)
+    permissions["deny"] = deny
+    settings["permissions"] = permissions
+    gemini_dir.mkdir(parents=True, exist_ok=True)
+    tmp = settings_path.with_suffix(".json.tmp")
+    tmp.write_text(_json.dumps(settings, indent=1), encoding="utf-8")
+    os.replace(tmp, settings_path)
+    return hooks_path
+
+
 def read_media_rules(isolated_gemini_dir: str | Path) -> frozenset[str]:
     """The media rules currently present in the isolated settings.json."""
     settings_path = Path(isolated_gemini_dir) / "settings.json"

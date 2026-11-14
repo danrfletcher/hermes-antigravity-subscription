@@ -84,6 +84,11 @@ class AntigravitySubscriptionDirectSDKProfile(ProviderProfile):
         top_level: dict[str, Any] = {}
         if effort:
             top_level["reasoning_effort"] = str(effort).strip().lower()
+        # Binds the request to its Hermes chat so the client can keep one agy conversation per
+        # chat and resume it after restarts (consumed by the client; never sent anywhere).
+        session_id = context.get("session_id")
+        if session_id:
+            top_level["hermes_session_id"] = str(session_id)
         return {}, top_level
 
     def fetch_models(

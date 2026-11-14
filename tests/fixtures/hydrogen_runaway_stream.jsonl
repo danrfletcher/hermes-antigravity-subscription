@@ -1,0 +1,1345 @@
+{"event": "step_update", "step_update": {"text_delta": "<tool_call>{\"id\": \"call_34\", \"type"}}
+{"event": "step_update", "step_update": {"text_delta": "\": \"function\", \"function\": {\"name\": \"read_file\","}}
+{"event": "step_update", "step_update": {"text_delta": " \"arguments\""}}
+{"event": "step_update", "step_update": {"text_delta": ": \"{\\\"limit\\\":200,\\\"offset\\\":1,\\\"path\\\":\\\"/xxxx/xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx\\\"}\"}}</tool_call>\n<tool_call>{\"id\":"}}
+{"event": "step_update", "step_update": {"text_delta": " \"call_"}}
+{"event": "step_update", "step_update": {"text_delta": "35\", \"type\": \"function\", \"function\":"}}
+{"event": "step_update", "step_update": {"text_delta": " {\"name\": \"read_file\", \""}}
+{"event": "step_update", "step_update": {"text_delta": "arguments\": "}}
+{"event": "step_update", "step_update": {"text_delta": "\"{\\\"limit\\\":200,\\\"offset\\\":1,\\\"path\\\":\\\"/xxxx/xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx\\\"}\""}}
+{"event": "step_update", "step_update": {"text_delta": "}}</tool_call>\n<tool_call>{\"id\": \"call_36\", \"typ"}}
+{"event": "step_update", "step_update": {"text_delta": "e\": \""}}
+{"event": "step_update", "step_update": {"text_delta": "function\", \"function\": {\"name\": \"read_file\", \"arguments\": \"{"}}
+{"event": "step_update", "step_update": {"text_delta": "\\\"limit\\\":30"}}
+{"event": "step_update", "step_update": {"text_delta": "0,\\\"offset\\\":1,\\\"path\\\":\\\"/xxxx/xxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxx\\\""}}
+{"event": "step_update", "step_update": {"text_delta": "}\"}}</tool_call>\n<tool_call>{\"id\": \""}}
+{"event": "step_update", "step_update": {"text_delta": "call_37\", \"type\":"}}
+{"event": "step_update", "step_update": {"text_delta": " \"function\", \"function\": {\"name\": \"read_file\", \""}}
+{"event": "step_update", "step_update": {"text_delta": "arguments\": "}}
+{"event": "step_update", "step_update": {"text_delta": "\"{\\\"limit\\\":250,\\\"offset\\\":1,\\\"path\\\":\\\"/xxxx/xxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxx\\\"}\""}}
+{"event": "step_update", "step_update": {"text_delta": "}}</tool"}}
+{"event": "step_update", "step_update": {"text_delta": "_call>\n<tool_call>{\"id\": \"call_38\", "}}
+{"event": "step_update", "step_update": {"text_delta": "\"type\": \"fun"}}
+{"event": "step_update", "step_update": {"text_delta": "ction\","}}
+{"event": "step_update", "step_update": {"text_delta": " \"function\": {\"name\": \"read_file\", \""}}
+{"event": "step_update", "step_update": {"text_delta": "arguments\": "}}
+{"event": "step_update", "step_update": {"text_delta": "\"{\\\"limit\\\":150,\\\"offset"}}
+{"event": "step_update", "step_update": {"text_delta": "\\\":1,\\\"path\\\":\\\"/xxxx/xxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\\"}\"}}</tool_c"}}
+{"event": "step_update", "step_update": {"text_delta": "all>\n\nTool R"}}
+{"event": "step_update", "step_update": {"text_delta": "esult (call_34"}}
+{"event": "step_update", "step_update": {"text_delta": "):\n{\"xxxxxxx\": \"x|<!-- xxxxxxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxx -->\\xx|## xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx &"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx\\xx|xxxx xx xxxxxxxx xxxx xxxxx xxx xxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx. \\\"xxxxxxx \u2026\\\" xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx xxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx, xxx xxx xxxx'x xxxxxxx xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xx xxx xxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x (`xx x xx x \u00b7 xxxx: x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx \u00b7 xxx`). xxxx xxxx-xxxx xxxxxxx xxxxx xxxxx x xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " (`xxxxxxxxxxx.xxx()`), "}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx xxx `xxxxxxxx: ` xxxxxx xxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxx xxx xxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx (xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxx xxxx xx xxx `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx`)."}}
+{"event": "step_update", "step_update": {"text_delta": "\\xx|\\xx|## xxxx xxxxx\\xx|x. **xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxx, xxxxxxxxxx & x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx**\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "|   "}}
+{"event": "step_update", "step_update": {"text_delta": "- xxx `xxxxxxx_xx?: xxxxxx | xxxx` xxx `xxxx_xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx_xx?: xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx | xxxx` xx "}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxxxxxxxxxxx` xx `xxxxxxxxx/xxx/xxx/xxxxxxxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xx`. xxxx xxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx; xxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx xxx xxxxx, xxxxx xxxx xx xxxxxxxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x.\\xx|   - xxx `xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx(xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxxxxx)` xx x xxx xxxxxx `xxxxxxxxx/xxx/xxx/xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x-xxxxx.xx` "}}
+{"event": "step_update", "step_update": {"text_delta": "(xx xx `xxxxxx-xxxx.xx"}}
+{"event": "step_update", "step_update": {"text_delta": "` xxxxxxxxx xxx xxxxxxxx xxxxxxxxxx) xxxxxxxxx `"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx xx:xx` xxxx `xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx` x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xx xxx xxxx xxxxxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxxxxxx xxx xx `xxxxxx`, xx `xxxxxxx x x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx:xx` xxxx xx xxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx xxxxxxx xxx; xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x `xxxx` xxxx `xxxxxxxxxxxx` xx xxxxxxx xx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx.\\xx|   - xxx `xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx(xxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxxxxx, xxxxxxx = x)` xxxxxxxxx `xxxx` xxxx `xxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx` xx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xx xxxxxxxxxxx, "}}
+{"event": "step_update", "step_update": {"text_delta": "`xx` xxxx xxxxxxx xx xxxxxxxx (xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx x), `<x>x` xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx, xxx "}}
+{"event": "step_update", "step_update": {"text_delta": "`<x"}}
+{"event": "step_update", "step_update": {"text_delta": ">x <x>x` xxxx xx xxxx xxxxxxx (xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "`<x>x xx` xx `<x>x"}}
+{"event": "step_update", "step_update": {"text_delta": "`? xxxxx xxx xxxxxxxx xxxxxxxx xxxxxxxxx xx `xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx/xxx/x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx/xxxxxxx-xxxxxx.xx` xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx \u2014"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx `xx xx` xx `xx` xxxxxxxxxxxx xxxx `xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx` xx `"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx-xxxxxx.xx"}}
+{"event": "step_update", "step_update": {"text_delta": "`).\\xxx|   - xxxxxx xxx xxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxxxxx xxxxx `xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx/xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx/` (`xxxxxx.xxxxxxx.xxxx`, `xxxxxx.xxxxxxx-xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx.xxxx`,"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxxxx.xxxxxxx-xxxx.xxxx`, `xxxxxx.xxxxxxx-xxxxxxx.xxxx`, "}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxxxx.xxxxxxx-xxx.xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "`, `xxxxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx-xxx-xxxxxxxxx.xxxx`, `xxxxxx.xxxxxxx-xxxxxxx.xxxx`, `x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx.xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x-xxxxxxx-xxxxxxxx.xxxx`"}}
+{"event": "step_update", "step_update": {"text_delta": ", `xxxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx-xx-xxxxx-xxxxxx.xxxx`, xxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxx xxxx xxxx `xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx` xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x) xxxx xxxxxxxxx `xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx_xx` xxx `xxxx_xxxxxxx_xx` xxxxxxxxxx; xxxxx `xxxxxxxxx/xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx/xxxxxxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx.xx` xxx `xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxxx/xxxx/xxxxxxxx-xxxx.xxxx.xx` x"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxxx xxx xxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxxx (xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx `xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxx.xxxx.xx` xxxxxx xxx xxxxxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxx xxxxxxxx'x xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx!).\\xxx|x. **"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxxx & xxxx xxxxxx**\\xxx|   - xxxxxx `xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx` (`xxxxxxxxx/xxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx/xx-xxxxxxxx/xxxxxx-xxx-xxxx-xxxxx.xx`) "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx `xxxxxxxxxxx: xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x | xxxx`, `"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx: xxxxxx | xxxx`, `xxxxxxxx: xxxxxx`, xxx `xxxxxxxxx: xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx | xxxx`"}}
+{"event": "step_update", "step_update": {"text_delta": " (xxxxx `xxxxxxxx` xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxxxxxx: ` xxx xxxxx xxx xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx xxxxx `/`, xxx "}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxxxxxxx` "}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxx xxxx `xxxx` xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx xxxxxxx,"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxx` xxxx `xxxx` xx xxxxxxx xx `\"xxxx xxxxx\"`"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxxxx xx xxxxxx).\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|   -"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx `xxxxxxxxxxxxxxx` xxx `xxxxxxxxxxxxxxxx`"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxxxxx xx xxxxxxxx `"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx?: xxxxxx` (xxxxxxx `x"}}
+{"event": "step_update", "step_update": {"text_delta": "`) xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx `xxxx_xxxxxxx_xx` + `xxxxxxxxxxxxxx` xx `x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxx`.\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "  - xxx x xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx-xxxx xxxx xx xxxxx xx `xxxxxxxxxxxxxxxxx` "}}
+{"event": "step_update", "step_update": {"text_delta": "(`xxxxxxxxx/xxx/xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xx-xxxxxxxx/xxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxx`) xxxxxxxx xx `(xxxx.xxx, xxxxxxxxxxx.xxx())"}}
+{"event": "step_update", "step_update": {"text_delta": "` xxxx `xxxx` xxxxxxx: x"}}
+{"event": "step_update", "step_update": {"text_delta": " xx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxxx (xx xx-xxxxxx) `xxxxxxxxxxx` xxxxxxxx `x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx = xxxx.xxx(x, xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx.xxx() - xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx)` xxx xxxxxxxx x xx-xxxxxx xxxxx `xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxxx > x` xxx xxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "(xxxxx xxx xxxxxxxx xx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxxx `xxxxxxx.xxxxxx === x`). xxxx `xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx(xxxx, xxxxxxx)`"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xxxxx xxxx xxxxxxxxxxxxx.\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "x. **xxxx xxxxxx & xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx**\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "  - xx"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxxxxxxx/xxx/xxxxxxxx/xx-xxxxxxxx/xxxxxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxx`:\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "    - xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " `{xxxx.xxxxxxxxxxx}` (`xxxx-xxxxxx=\"xxxxxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx\"`) xx xxx `xxxxxx-xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx` xxxx xxxxx xxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx (`x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx`), x"}}
+{"event": "step_update", "step_update": {"text_delta": ".x. `xxxx xxxxxxxx \u00b7 xxxxxxx xx:xx \u00b7 xxxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx` (xx xxxxxxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " `\u00b7` xx xxx xxxxxxxx xxxx xxx). xxxx `xxxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx=\"xxxxxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx\"`, `xxxx-xxxxxx=\""}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx\"`, xxx `xxxx-xxxxxx=\"xxxxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx\"` xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx.\\xxx|     - xxxxxx `"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx-xxxx` xx xxxxxx `xxxx.xxxxxxxx` xxxx `xxxxx={xxxx.xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx ?? xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx}`.\\xxx|     - xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx `{xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxxxxxxxxxxxx}` xx xxx `xxxxxx-xxxxxxxx` xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " (x.x. `xx x"}}
+{"event": "step_update", "step_update": {"text_delta": " xx x \u00b7 xxxx: xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx \u00b7 xxx` xxxx `x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx-xxxxxx=\"xxxxxx-xxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx\"` xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx `xxxxxx-xxxxxxxx`,"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxxxxxxx xx `xxxxxx-xxxxxxxx` xxxx xxxxxxx)."}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|     - xxxxx `xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx/xxxxx/x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/xx-xxxxxxxx-xxxxx.xxxx.xx`"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxxxxxx xxxxxxxxx/xxxxxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx (`xx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx-xxxxxxxx.xxxx.xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x`, "}}
+{"event": "step_update", "step_update": {"text_delta": "`xx-xxxxxxxx.xxxx.xx`, xxx.) xxx xxxxxx xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxx xxxxxxxx `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx: <xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x>`.\\xxx|x. **xxxxx**\\xxx|   - xxxx xxxxx xxx `xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx`, `xxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x` (xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxxx xxxxx, `<"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx`, `>=xxx`, xxxx-xxx xx xxxxx-xxx xx `xxxxxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx`, xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxx, xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxx/xxxxxxx xxxxxx), xxx `xxxxxxxxxxxxxxxxxx` "}}
+{"event": "step_update", "step_update": {"text_delta": "(`xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x`, `xxxxxxxxxxxxxxx`, `"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx`/`xxxxxxxxx`).\\xxx|   - xxxxxxxxx / xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx xxxx xxx `xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx` xxxxxxxxx:"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": ":xx"}}
+{"event": "step_update", "step_update": {"text_delta": "` xxx `xxxxxxx x xxx xx:xx` xxxxxxx, xxxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx xx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxxx xxxx, xxxx-xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xxxxxx (`xx.xxxxxxxxxxxxxxxxxxx(xx_xxx)` x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx `xxx` -"}}
+{"event": "step_update", "step_update": {"text_delta": "> `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x` xxxxxxx x xxx xxxx), `xxxxxx-xxxx` xxxxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxx xxxx xxxx xxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx `xxxxx`,"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxxxxx `xxxxxxx_xx"}}
+{"event": "step_update", "step_update": {"text_delta": "`/`xxxx_xxxxxxx_xx` xxxxxxx xxxxxxxxxx (xxx xxxxxxxx, x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx xxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx).\\xxx|\\xxx|## xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x & xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|- xxxxxx: `xxxxxxxxx/xxx/xxx/xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx-xxxxx.xx`, `xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx/xxx/xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxx-xxxxx.xx` (xx `xxxxxx-xxxx.xx`), `xxxxxxxxx/xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxxxxxx/xx-xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxxxx-xxx-xxxx-xxxxx.xx`, `xxxxxxxxx/xxx/xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/xx-xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/xxxxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xxx`, `xxxxxxxxx/xxx/xxxxxxxx/xx-xxxxxxxx/x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xxx`.\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|- xxxxxx xxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx: `xxxxxxxxx/xxxxxxxx/xxxxxx.*."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx`, `xxxxxxxxx/xxxx/x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx-xxxxxxxx.xx` (xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxx xxxx xxxxx xxxxxxxx xxxxxxx xxx xxxxxxxx xxxx xxx "}}
+{"event": "step_update", "step_update": {"text_delta": "\u2014 xxxx `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx/xxxxxxx-xxxxxxxx.xx` "}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxx xx xxxxx xx xx-x"}}
+{"event": "step_update", "step_update": {"text_delta": ", xx xxxx xxxxxx `xxxxxxxxx/xxxx/xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx-xxxxxxxx.xx` xx xx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xx-x'"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxxx xxxxxx, xx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx `xxxxxxxx-xxxx.xxxx.xx` xxxxxx).\\xxx|- xxxxx: `xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x/xxxxx/xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxx-xxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xx`, `xxxxxxxxx/xxxxx/xxxx/xxxxxx-xxx-xxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx.xxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "x`, `xxxxxxxxx/xxxxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxx/xx-xxxxxxxx-xxxxxxxx.xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x.xxx`, xxx xxx xxxxxxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxx xxxx xxxxxx `x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx: <xxxx>`.\\xxx|- xxxxx: xx xxx xxxxxx `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/` xx `xxxxx/xxx/` (x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xx-x); xx xxx xxx xxxxxx `xxxxxxx_xx`/`xxxx_"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx_xx` "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx xx `xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/` xx xxxxx `xxxxx_xxxxxx.xx` xx `xxxx_xxxx.xx`."}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|## xxxxxxxxxx & xxxxxxx\\xxx|- [ ] "}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxxxxxxx/xxx/xxx/xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx-xxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xx` xxxxxxx xxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx `xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx_xx` xxx `xxxx_xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "_xx` xx `xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx`.\\xxx|- [ ] `xxxxxxxxxxxxxxx` xxxxxxx `xxxxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": ":xx` xx xxx xxxx xxxxxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxx xx `xxx`, `xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx x xxx xx:xx` xx xxxxxxx xxxx, xxx `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx` xxxx xxxxxx/xxxxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|- [ ] "}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxxxxxxxxxxxxxxx` xxxxxxx `xxxx` xxxx xxxxxx/x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx, xxxxxx xxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx xx `"}}
+{"event": "step_update", "step_update": {"text_delta": "xx`, xxxxxxx `<xxx` xx `"}}
+{"event": "step_update", "step_update": {"text_delta": "<x>x`, xxx xxxxxxx `>=xxx` xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx xxx xxxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx.\\xxx|- [ ] `xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx` xxxxxxx `xxxxxxxxxxx`, `xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx`, `xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx` (xx `xxxxxxxx: ` "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxxxxxxx xxxx xxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx), xxx `xxxxxxxxx` (xxxx `xxxx` "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx).\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|- [ ] `xxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "` xxxxxxx `xxxxxxx \u2026` xx xxx xxxx xxxxx xxx xxxxx (`xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxx`), xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx xxxx xxxx xxxx xxxx `xxxxx`, xxx xxx xxxx xxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xx xxx `xxxxxx-xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x` xxxx.\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|- [ ] xxxxxxx xxxxx, "}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxxxxxxxxxxxxxxx` xxxxxxxx xxx xxxxxxxxx xxxx xxxxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx x xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx `xxxxxxxxxxx.xxx("}}
+{"event": "step_update", "step_update": {"text_delta": ")` xxxxxx xxx x xxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx.\\xxx|- [ ] `xxx --xxxxxx xxxxxxxxx xxxx &"}}
+{"event": "step_update", "step_update": {"text_delta": "& xxx --xxxxxx xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxx &&"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx --xxxxxx xxxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxx` xxxxxx.\\xxx|- [ ] [xxxxx xx xxxxxx] xxxxxx xxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxxxxx (`xxx --xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxxxxxx xxx xxx` x"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx) xxxx `xxxxxxx \u2026`,"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx xxxx xxxx, xxx xxxx xxxxxxx xxxx xxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxx xxxx xxxxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxx xxx xxxxxx xxxxxx.\\x\", \"xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx_xxxxx\": xx, \"xxxx_xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx\": xxxx, \"xxxxxxxxx\": "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx, \"xx_x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx\": xxxxx, \"xx_xxxxx\": xxxxx, \"xxx_xxxxx\": xxxxx}\n\n"}}
+{"event": "step_update", "step_update": {"text_delta": "Tool Result "}}
+{"event": "step_update", "step_update": {"text_delta": "(call_35):"}}
+{"event": "step_update", "step_update": {"text_delta": "\n{\"xxxxxxx\": \"x|/**\\xx| * xxxxxxxxxx xxx xx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx (xxxxxxx_xx xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "_xxxxxxx_"}}
+{"event": "step_update", "step_update": {"text_delta": "xx).\\xx| *\\xx| * xxx xxxxx xxxxx xxx xxxx xx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/xxxxxx xxx xxxxxx-xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx."}}
+{"event": "step_update", "step_update": {"text_delta": "xx, xxx xxx\\xx| * xxx/xxxxxxx xxxxxxxxxx xxxxxxx xxxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx (xxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "), xxx xxxxx xxxxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": ".\\xx| */\\xx|\\xx|xxxxxx { xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " } xxxx './xxxxxx-xxxx'\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|\\xxx|xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx = [\\xxx|  'xxx',\\xxx|  'xxx',\\xxx|  'xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "',\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  'xxx',\\xxx|  'xxx',\\xxx|  'xxx',\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  'xxx',\\xxx|  'xxx',\\xxx|  'xxx',\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  'xxx',\\xxx|  'xxx',\\xxx|  'xxx',\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|] xx xxxxx\\xxx|\\xxx|xxxxxxxx xxxxxxxxxx(xxx:"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx | xxxx | xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "): xxxxxx | xxxx {\\xxx|  xx (!xxx || xxxxxx xxx "}}
+{"event": "step_update", "step_update": {"text_delta": "!== 'xxxxxx'"}}
+{"event": "step_update", "step_update": {"text_delta": ") xxxxxx xxxx\\xxx|  xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": " xx = xxxx.xxxxx(xxx)\\xxx|  xxxxxx xxxxxx.xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx(xx) ? xx : xxxx\\xxx|}"}}
+{"event": "step_update", "step_update": {"text_delta": "\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|\\xxx|/**\\xxx| * xxxxxx x xxxxxx'x `xxxxxxx_x"}}
+{"event": "step_update", "step_update": {"text_delta": "x` xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxx xxxxxxxx xx `xxxxxx` xx xxxxxx/xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".\\xxx| *\\xxx| * - xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx/xxxxxx xxxxxxxx xxx: `xxxxxxx xx:xx`\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "| * - xxxxxxxxx xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx: `xxxxxxx x xxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": ":xx` (x.x. `xxxxxxx x xxx xx:xx`)\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x| *"}}
+{"event": "step_update", "step_update": {"text_delta": " - xxxxxxx xx xxxxxxxxxxx: `xxxx`\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x| */\\xxx|xxxxxx xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxxxxxxxxxx(\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxxxxxxxxxx: xxxxxx | xxxx | xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx,\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxx: xxxxxx\\xxx|): "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx | xxxx {\\xxx|  xxxxx xxxxxxx = xxxxxxxxxx(xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x)\\xxx|  xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx = xxxxxxxxxx(xxxxxx)\\xxx|  xx (xxxxxxx === xxxx || xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " === xxxx) xxxxxx xxxx\\xxx|\\xxx|  xxxxx xxxxx = "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxx(xxx xxxx(xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx))\\xxx|  xxxxx xxx = xxxxxxxxxxx(xxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx(xxxxx))\\xxx|  xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx = `${xxxxx.xxxx}:${xxxxx.xxxxxx}`\\xxx|\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xx (\\xxx|    xxxxx.xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " === xxx.xxxx &&\\xxx|    xxxxx.xxxxx === xxx.xxxxx &&\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxx === xxx.xxx\\xxx|  ) {\\xxx|    xxxxxx `xxxxxxx ${xxxx}`\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  }\\xxx|\\xxx|  xxxxx xxx = xxxxxx[xxxxxx(xxxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx) - x]\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xx (!xxx) xxxxxx xxxx\\xxx|  xxxxx xxx = xxxxxx(xxxxxx(xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx.xxx))\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  xxxxxx `xxxxxxx ${xxx} ${xxx} ${xxxx}`\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|}\\xxx|\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|/**\\xxx| * xxxxxx xxx xxxx xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xxxxxxx xxxx `xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx` xx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx| * `xxxxxx` xxxx xxx xxxxxxxxx `xxxxxxx` xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxx xxxx.\\xxx| *\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx| * xxxxxxx `xxxxxxxxxxxxxx` xx `xxxxxxx-xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x.xx`:\\xxx| * - `<"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx`: `<x>x` (xxxxxxxxx `xx` xxxx xxxxxxxx xx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx)\\xxx| * -"}}
+{"event": "step_update", "step_update": {"text_delta": " `>= xxx`: `<x>x <x>x` (x.x. `xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xx`, `xx xxx`, `xxx xxx`)\\xxx| * - "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx xx x"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx: `xxxx`\\xxx| *"}}
+{"event": "step_update", "step_update": {"text_delta": "/\\xxx|xxxxxx xxxxxxxx xxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx(\\xxx|  x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ": xxxxxx | xxxx | xxxxxxxxx,\\xxx|  xxxxxx: xxxxxx,\\xxx|  xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " = x\\xxx|): xxxxxx | xxxx {\\xxx|  xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxxxx = xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "(xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx)\\xxx|  xxxxx xxxxx = xxxxxxxxxx(xxxxxx)\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xx (xxxxxxx === xxxx || xxxxx === xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx) xxxxxx xxxx\\xxx|\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxxxxxx = xxxxxx.xxxxxxxx(xxxxxxx) && xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx > x ? xxxxxxx : x"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|  xxxxx xxxxxxxxxx = xxxx.xxxxx((xxxxx + xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx - xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx) / xx_xxx"}}
+{"event": "step_update", "step_update": {"text_delta": ")\\xxx|  xxxxx xxxxxxxxxxxx = xxxx.xxx(x, xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx)\\xxx|  x"}}
+{"event": "step_update", "step_update": {"text_delta": "x (xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx < xx) xxxxxx `${xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "}x`\\xxx|  xxxxx xxxxx = "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "(xxxxxxxxxxxx / xx)\\xxx|  xxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx = xxxxxxxxxxxx % xx\\"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  xxxxxx `${xxxxx}x ${xxxxxxx}x`\\xxx|}\\x\", \"x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx_xxxxx\":"}}
+{"event": "step_update", "step_update": {"text_delta": " xx"}}
+{"event": "step_update", "step_update": {"text_delta": ", \"xxxx_xxxx\": xxxx, \"xxxxxxxxx\": xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx, \"xx_xxxxxx\": xxxxx,"}}
+{"event": "step_update", "step_update": {"text_delta": " \"xx_xxxxx\": xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ", \"xxx_xxxxx\": xxxxx}\n\nTool Result (call_36):\n{\"xxxxxxx\": \"x"}}
+{"event": "step_update", "step_update": {"text_delta": "|/**\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "| * xxx xx xxxxxxxx xxxx xx x xxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx xx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx `xxxxxxx[]` xxxxx (xx"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxx"}}
+{"event": "step_update", "step_update": {"text_delta": ").\\xx| * xxxxxxxxxx xxx xxxx xxxxx xxxxx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx, xx xxx xxxxx xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxxxx\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xx| * xxxxxxx x xxxxxxx.\\xx| */\\xx|\\xx|xxxxxx xxxx { "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxx, xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx, xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx } xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " '@/xxx/xxxxxxxx-xxxxx'\\xx|xxxxxx { xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx, xxxxxxxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "} xxxx '@/xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x/xxxxxx-xxxx'\\xx|xxxxxx { xxxxxxxxxxxxxxx, xxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x } xxxx '@/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/xxx-xxxxx'\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|\\xxx|xxxxxx xxxx xxxxxxxxxxx =\\xxx|  | 'xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx'\\xxx|  | '"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx'\\xxx|  | 'xxxxxxx_xxx_xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx'\\xxx|  | 'xxxxxx'\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  | '"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx'\\xxx|\\xxx|xxxxxx xxxx xxxxxxxxxxxxxxxx ="}}
+{"event": "step_update", "step_update": {"text_delta": " 'xxxxxx' | "}}
+{"event": "step_update", "step_update": {"text_delta": "'xxxxxxx' | 'xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "' | 'xxxxxxx'\\xxx|\\xxx|xxxxxx xxxxxxxxx xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx {\\xxx|  xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ": xxxxxx\\xxx|  /**\\xxx|   * 'xxxxxx' xxx x xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx;"}}
+{"event": "step_update", "step_update": {"text_delta": " 'xxxxxxx' xxxx x xxx xxxx xxxx xx\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|   * xxxx (x-xxxxxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx) xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx xxxxxxxxx xx xx xxxxxxx\\xxx|   * xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxx xx xxx xxx.\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|   */\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxx: 'xxxxxx' | 'xxxxxxx'\\xxx|}\\xxx|\\xxx|xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxx xxxxxxxxxxxxxxxxxx {\\xxx|  xxxxxx: xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx\\xxx|  xxxxx: xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  xxxxxxx: xxxxxx\\xxx|  /** xxxxx xxxx xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "(xxxxxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxx `/`)"}}
+{"event": "step_update", "step_update": {"text_delta": " xx `'xxxx xxxxx'` xxxx xxxxxx. */\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: xxxxxx\\xxx|  /** xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "` xxxxxx xxxx xxx xxxxxxxx xxx xxxxxxx/xxxxx, xx"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxx` xxxx xxxxxx. */\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx: xxxxxx | xxxx\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  /** xxxxxxxxx xxxxxx xxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " (`xxxxxxx xx:xx` / `xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx x xxx xx:xx`) xx "}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxx`. */\\xxx|  xxxxxxxxxxx: xxxxxx | xxxx\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  /** xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxx xxxxxxx xxxx (`xxx`, `xx xx`) xx `xxxx`"}}
+{"event": "step_update", "step_update": {"text_delta": ". */\\xxx|  xxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx:"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx | xxxx\\xxx|  /** xxxxxx `xx x xx x`, xx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxxxx xxx xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx xx."}}
+{"event": "step_update", "step_update": {"text_delta": " */\\xxx|  xxxxxx: xxxxxx | xxxx\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  /** xxxxxxxxx xxxx + x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " (x.x. \\\"xxxxx xxxxxxx\\\") xx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxxxx/xxxxxx/xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx. */\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx: xxxxxx | xxxx\\xxx|  /**\\xxx|   * xxx-xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxx xxxx: `xx x xx x \u00b7 xxxx: x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x`.\\xxx|   * xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xxxxxxxx xx xxxx xxxxxxx xx xxx xxxx xx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".\\xxx|   */\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx: xxxxxx | xxxx\\xxx|  xxxxx: xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx\\xxx|  /"}}
+{"event": "step_update", "step_update": {"text_delta": "** xxxxxxx xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xxx xxxxxxxx xxxxxxx (xxxxxxx, xxxxxx, xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx). */\\xxx|  xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx: xxxxxx | xxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxxxxxxxx: xxxxxxxxxxxxxxxx\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxxxxxxxx: xxxxxx |"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  /**\\xxx|   * xxxx xxxx xxxx xxx xxxxxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxx xxxxx xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx\\xxx|   * ("}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxxxxxx`, x.x. `xx:xx\u2013xx:xx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx`), xx xxxxxxx xx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxxxxxxx\\xxx|   * (`xxx xxxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx` / `xxxxxx`).\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": " */"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|  xxxxxxxxxxxxxxxxxxx: xxxxxxx\\xxx|  /**\\xxx|   "}}
+{"event": "step_update", "step_update": {"text_delta": "* xxxxxxxx xxxxxx xxxxxxx xxxxxxx xx xxxx xxxxxx, xx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx\\xxx|   * xxxxx `xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx_xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "` ("}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxxxxx xxxxxxxx xxxxxx xxxxx-xx).\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": " */\\xxx|  xxxxxxx: xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " | xxxx\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  /** xxxx xxxx xxxxx xxx xx xxxxxxxxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx. */\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxxxxxx: xxxxxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  /** xxxx xxxx xxxxxx xx xxxxxxx xxxxx xxx (xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx). */\\xxx|  xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx: xxxxxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  /** xxxx xxxx xxx xxxxxx xx xxxx (xxxxxx xx xxxxxxx) xx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx. */\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx: xxxxxxx\\xxx|  /** xxxx xxxx xxxx xx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx (xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxxxx xxxxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx \u2014 xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "[] xxxxx xxxxxxx). */\\xxx|  xxxxxxx: xxxxxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|}\\xxx|\\xxx|xxxxx xxxx_"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx: xxxxxx<xxxxxxxxxxxxx['xxxx'], xxxxxx> = {"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|  xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ": 'xxxxx',\\xxx|  xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: '"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx',\\xxx|  xxxxxx: 'xxxxxx',\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  xxxxxxx: 'xxxx-xxx'"}}
+{"event": "step_update", "step_update": {"text_delta": ",\\xxx|}\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|\\xxx|xxxxxxxx xxxxxxxxxx(\\xxx|  xxxx: xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx['xxxx'],\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxx: xxxxxxxxxxxxx['xxxx'],\\xxx|  xxxxx: xxxxxxxxxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|): xxxxxx |"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx {\\xxx|  xx (xxxxx === 'xxxxxxxx' || xxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "=== 'xxxxxx' || xxxxx =="}}
+{"event": "step_update", "step_update": {"text_delta": "= 'xxxxxxx')"}}
+{"event": "step_update", "step_update": {"text_delta": " {\\xxx|    xxxxxx xxxx\\xxx|  }\\xxx|  xx (xxxxx === "}}
+{"event": "step_update", "step_update": {"text_delta": "'xxxxxxx_xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "_xxxxxxxx')"}}
+{"event": "step_update", "step_update": {"text_delta": " {\\xxx|    xxxxxx `${xxxx_xxxxx[xxxx]} xxxxxxx`\\xxx|  }\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|  xxxxx xxxx = xxxx === 'xxxxxxx' ? 'xxxxxxx' "}}
+{"event": "step_update", "step_update": {"text_delta": ": 'xxxxxxx'\\xxx|  xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " `${xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "_xxxxx[xxxx]} ${xxxx}`\\xxx|}\\xxx|\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|xxxxxxxx xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx(\\xxxx|  xxxx: xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx | xxxx | xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x,\\xxxx|  xxxxxx: xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxxx|): xxxxxx {\\xxxx|  xx (!xxxx) xxxxxx 'xxxxxx'\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|  xx ("}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xxxxxx === 'xxx_xxxxxx') {\\xxxx|    xxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "'xxxxxx \u2014 "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxx xxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxxxx'\\xxxx|  }\\xxxx|  xx (xxxx.xxxxxx === 'xxxxxxxx_x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "') {\\xxxx|    xxxxxx 'xxxxxx \u2014 xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxxxx'\\xxxx|  }\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  xx"}}
+{"event": "step_update", "step_update": {"text_delta": " (xxxx.xx) {\\xxxx|    xxxxxx `xxxxxx \u2014 xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " ${xxxxxxxxxxxxx(xxxx.xx"}}
+{"event": "step_update", "step_update": {"text_delta": ","}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx)}`\\xxxx|  }\\xxxx|  xxxxxx 'xxxxxx'\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "}\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|\\xxxx|xxxxxxxx xxxxxxxxxxxxx(xxxxx:"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxxxxxx): xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx | xxxx {\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": " = xxxxx.xxxxxxxx_xxxxxxx\\xxxx|  xx "}}
+{"event": "step_update", "step_update": {"text_delta": "(!x) xxxxxx xxxx\\xxxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xx (x.xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ") {\\xxxx|    xxxxxx {\\xxxx|      xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: `${x.xxxxxxx} ("}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx: ${x.xxxxxxxx})`,\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxx: 'xxxxxxx',\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "    }\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  }\\xxxx|  xxxxxx { xxxx: x.xxxxxxx, xxxx: 'xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx' }\\xxxx|}\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|\\xxxx|xxxxxxxx xxxxxxxxxx(xxxx: xxxxxx | xxxx | xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "): {\\xxxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx: xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxxx|  xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx: xxxxxx | xxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|} {\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xx (!xxxx) xxxxxx { xxxxxxxx: 'xxxx xxxxx', x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx: xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx }\\xxxx|  xxxxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x = xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxxxx(/\\\\/+$/, '')\\xxxx|  xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx = xxxxxxx.xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx('/')\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|  xxxxx xxxxxxxxx = xxxxx >= x "}}
+{"event": "step_update", "step_update": {"text_delta": "? xxxxxxx.xxxxx(xxxxx + "}}
+{"event": "step_update", "step_update": {"text_delta": "x) :"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx\\xxxx|  xxxxxx {\\xxxx|    xxxxxxxx: xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx || xxxx,\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|    xxxxxxxxx: xxxx,\\xxxx|  }\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|}\\xxxx|\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|xxxxxxxx xxxxxxxxxxxx(\\xxxx|  xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx,\\xxxx|  xxxxxx: xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx,\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|  xxxxx: xxxxxxxxxxx\\xxxx|): { xxxx: xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " | xxxx; xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx:"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx } {\\xxxx|  xx (xxxxx === 'x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx') xxxxxx { xxxx: '"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx', xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx: xxxxx }\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|  xx (xxxxx === 'xxxxxxxx' || xxxxx === 'xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx') {\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|    xxxxxx {"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx: xxxx, xxxxxxxxxxx: xxxxx }\\xxxx|  }\\xxxx|  xx (xxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx ==="}}
+{"event": "step_update", "step_update": {"text_delta": " 'xxx_xxxxxx_xxxx') {\\xxxx|    xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x { xxxx: 'x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxx xxxx', xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx: xxxxx }\\xxxx|  }\\xxxx|  xxxxx xxxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "= xxxxxxxxxxxxxxxxxxxx(\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|    xxxxx.xxxxxxxx.xxx,\\xxxx|    xxxxx.xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xxxx,\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|    xxxxxx\\xxxx|  )\\xxxx|  xxxxxx {\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|    xxxx: xxxxxxxxx ? `${xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx} xxxxxxxx` : 'xxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxx',\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|    xxxxxxxxxxx: xxxxxxx(xxxxxxxxx),\\xxxx|  }\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|}\\xxxx|\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|xxxxxx xxxxxxxx xxxxxxxxxxxxxxx(\\xxxx|  xxxxx:"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx,\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxx: xxxxxx,\\xxxx|  xxxxxxxxxxxxxx = x\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|"}}
+{"event": "step_update", "step_update": {"text_delta": "): xxxxxxxxxxxxxxxxxx {\\xxxx|  xxxxx xxxxx = xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx.xxxxx\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|"}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxx xxxxxx = xxxxx.xx ? `xx ${xxxxx.xx.x} xx"}}
+{"event": "step_update", "step_update": {"text_delta": " ${xxxxx.xx."}}
+{"event": "step_update", "step_update": {"text_delta": "xx}` :"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx\\xxxx|  xxxxx xxxxxxxx = xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx(xxxxx.xxxx, xxxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx, xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ")\\xxxx|  xxxxx xxxxxxxxxxxxx: xxxxxx[] = []\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xx (xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x)"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxxxxxx.xxxx(xxxxxx)\\xxxx|  xx (xxxxxxxx)"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx.xxxx("}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxx: ${xxxxxxxx}`)\\xxxx|  xxxxx xxxxxxxxxxxx ="}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxxxxxx.xxxxxx > "}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": " ? xxxxxxxxxxxxx.xxxx(' \u00b7 ') : xxxx\\xxxx|\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  xxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx: xxxxxx | xxxx = xxxx\\xxxx|  xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxxxxx: xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx = 'xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "'\\xxxx|  xx (xxxxx === 'xxxxxxxx') {\\xxxx|    xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx = 'xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "'\\xxxx|  } xxxx xx (xxxxx === 'xxxxxxx_xxx_xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx') {\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|    xxxxx xxxxxxxx = xxxxx.xxxxxxx_xxx?.xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx = xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " ? `xxxxxxx xxx ${xxxxxxxx}` : 'xxxxxxx xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx'\\xxxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "   xxxxxxxxxx = 'xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "'\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  } xxxx xx (xxxxx === 'xxxxxx') {\\xxxx|    xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx = xxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "(xxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx, xxxxxx)\\xxxx|    xxxxxxxxxx = 'xxxxxx'\\xxxx|  }"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xx (xxxxx === 'xxxxxxx') {\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|    xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx = xxxxx.xxxxxxx_xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|      ? `xxxxxxx \u2014 ${xxxxx.xxxxxxx_xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx}`\\xxxx|      :"}}
+{"event": "step_update", "step_update": {"text_delta": " 'xxxxxxx'\\xxxx|    xxxxxxxxxx = 'xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx'\\xxxx|  }\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|\\xxxx|  xxxxx xxx = xxxxxxxxxxxx(xxxxx, xxxxxx, xxxxx)\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx = xxxxx === 'xxxxxx' || xxxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx !== xxxx\\xxxx|  xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x { xxxxxxxx, xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " } = xxxxxxxxxx(xxxxx.xxxx)\\xxxx|  xxxxx xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx = xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx(xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxxxx_xx, xxxxxx)\\xxxx|  xxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x = xxxxxxxxxxxxxxxxx(\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|    xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x.xxxx_xxxxxxx_xx,\\xxxx|    xxxxxx,\\xxxx|    xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxxx|  )\\xxxx|\\xxxx|  xxxxxx {\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|    xxxxxx: xxxxx.xxxxxx,\\xxxx|    xxxxx: xxxxx.xxxxx,\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|    xxxxxxx: xxxxx.xxxxxxx,\\xxxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "   xxxxxxxx,\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx,\\xxxx|    xxxxxxxxxxx,\\xxxx|    xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx,\\xxxx|    xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx,\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|    xxxxxxxx,\\xxxx|    xxxxxxxxxxxx,\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx,\\xxxx|    xxxxxxxxxx,\\xxxx|   "}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxxx,\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|    xxxxxxxxxxxx: xxx.xxxx,\\xxxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxxxxxxxxxxxxxxx: x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx.xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx,\\xxxx|    xxxxxxx: xxxxxxxxxxxxx(xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x),\\xxxx|    xxxxxxxx: !"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx,\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|    xxxxxxxxx: xxxxxx,\\xxxx|    xxxxxx,\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|"}}
+{"event": "step_update", "step_update": {"text_delta": "    xxxxxxx: xxxx,\\xxxx|  }\\xxxx|}\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|/**\\xxxx| * xxxxx xxxx xxxxxx xxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxxxx xxxxxx xx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx.\\xxxx| */\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|xxxxxx xxxxxxxx xxxxxxxxxxxxxxxx(\\xxxx|  xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx: xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx,\\xxxx|  xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx = x\\xxxx|): xxxxxxxxxxxxxxxxxx[] {\\xxxx|  xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx.xxxxxxx.xxx((xxxxx) =>\\xxxx|    xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx(xxxxx,"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxx, xxxxxxxxxxxxxx)\\xxxx|  )\\xxxx|}\\x\", \"xxxxx_"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\": xxx, \"xxxx_xxxx\": xxxx, \"xxxxxxxxx\": xxxxx, \""}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "_xxxxxx\": xxxxx, \"xx_xxxxx\": xxxxx, \"xxx_xxxxx\":"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx}\n\nTool Result (ca"}}
+{"event": "step_update", "step_update": {"text_delta": "ll_37):\n{\"xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx\": \"x|xxxxxx { xxxxx, xxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx, xxxxxxxxxx } xxxx '@"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxxxxxxxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xx/xxxxx'\\xx|xxxxxx {"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxx } xxxx '@/xxxxxxxxxx/xx/xxxxx'\\xx|xxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "{ xxxxxx } xxxx '@/xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx/xx/xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "'\\xx|xxxxxx { xxxx, xxxxxxxxxxx } xxxx '@/xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx/xx/xxxx'\\xx|xxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " { xxxxxxxxxxxxxxxxxx } xxxx './xxxxxx-xxx-xxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx'\\xx|\\xx|xxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " {\\xx|  xxxx: xxxxxxxxxxxxxxxxxx\\xx|  xxxxxxxx: "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx\\xxx|  xxxx: xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  xxxxxxxxxxx: xxxxxx | xxxx\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxxx: (xxxxxx: xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx) => xxxx\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  xxxxxxxx: (xxxxxx: x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx) => xxxx\\xxx|  xxxxxx: (xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ": xxxxxx) => xxxx\\xxx|}\\xxx|\\xxx|xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxxx_xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx: xxxxxx<xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx['xxxxxxxxxx'], xxxxxx> = {\\xxx|  xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: 'xxxx-xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx-xxxxxxxxxx',\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx: 'xxxx-xxxxx-xxx xxxx:xxxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx-xxx',\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxx: 'xxxx-xxxxx-xxx xxxx:xxxx-xxxxx-xxx',\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: 'xxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx-xxx xxxx:xxxx-xxx-xxx',\\xxx|}\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|xxxxxx xxxxxxxx xxxxxxxxxx({\\xxx|  xxxx,\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx,\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|  xxxx,\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxxxxxxxxx,\\xxx|  xxxxxxx,\\xxx|  xxxxxxxx,\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|  xxxxxx,\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|}: xxxxxxxxxxxxxxx) {\\xxx|  xxxxxx (\\xxx|    <"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxx-xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx={`xxxxxx-xxxx-${xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxxx}`}>\\xxx|      <xxxxxxxxxxx xxxxxxxxx=\"xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx-x-x.x xx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "\">\\xxx|        <xxx xxxxxxxxx=\"xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx-xxxx xxxxx-xxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx-xxxxxxx xxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "\">\\xxx|          <xxx xxxxxxxxx=\"xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-x-x xxxx-x xxxxx-x-x"}}
+{"event": "step_update", "step_update": {"text_delta": "\">\\xxx|            <xx\\xxx|              xxxxxxxxx=\"xxxx-xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx-xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxx-xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx\"\\xxx|              xxxx-xxxxxx=\"xxxxxx-xxxxx\""}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|            >\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "            "}}
+{"event": "step_update", "step_update": {"text_delta": " {xxxx.xxxxx}\\xxx|            </xx>\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|          "}}
+{"event": "step_update", "step_update": {"text_delta": "  <xxx\\xxx|             "}}
+{"event": "step_update", "step_update": {"text_delta": " "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx=\"xxxx xxxx-xxxx xxxxx-xxxxxx xxx-x-x x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx-x-x.x xxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxx-xxxxx-xxxxxxxxxx\"\\xxx|              xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxxx=\"xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx-xxxx\"\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "            >\\xxx|              <xxxx xxxx-xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x=\"xxxxxx-xxxxxxx\">{xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxxxx}</x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx>\\xxx|              <"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxx-xxxxxx=\"xxxx\">\u00b7</xxxx>\\xxx|          "}}
+{"event": "step_update", "step_update": {"text_delta": "    <xxxx xxxx-xxxxxx=\"x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx-xxxx\">{"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx.xxxxxxxx}</xxxx>\\xxx|              {xxxx.xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx && (\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|                <"}}
+{"event": "step_update", "step_update": {"text_delta": ">\\xxx|                  <xxxx xxxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx=\"xxxx\""}}
+{"event": "step_update", "step_update": {"text_delta": ">\u00b7</xxxx>\\xxx|         "}}
+{"event": "step_update", "step_update": {"text_delta": "         <xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx\\xxx|                    xxxxxxx=\"xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx\"\\xxx|             "}}
+{"event": "step_update", "step_update": {"text_delta": "       xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx={\nxx|              "}}
+{"event": "step_update", "step_update": {"text_delta": "        xxxx.xxxxxxx.xxxx === 'xxxxxxx'\nxx|     "}}
+{"event": "step_update", "step_update": {"text_delta": "                   ? 'xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx-xxxxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx/xx xx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx-xx xxxx-xxxxx-xxx xxxx:xxxxxx-xxxxx-xxx/xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx:xx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxx-xxx/xx xxxx:xxxx-xxxxx-xxx'\nxx|          "}}
+{"event": "step_update", "step_update": {"text_delta": "            "}}
+{"event": "step_update", "step_update": {"text_delta": "  "}}
+{"event": "step_update", "step_update": {"text_delta": ": 'xxxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x-xxxxxxxxxx'\nxx|                   "}}
+{"event": "step_update", "step_update": {"text_delta": " }\\xxx|                 "}}
+{"event": "step_update", "step_update": {"text_delta": "   xxxx-xxxxxx=\"xxxxxx-xxxxxxx\"\\xxx|            "}}
+{"event": "step_update", "step_update": {"text_delta": "      >\\xxx|            "}}
+{"event": "step_update", "step_update": {"text_delta": "        {xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x.xxxxxxx.xxxx}\\xxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "              </xxxxx>\\xxx|                </>\\xxx|         "}}
+{"event": "step_update", "step_update": {"text_delta": "     )}\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "            </xxx>\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "         </x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx>\\xxx|          <xxx\\xxx|            xxxxxxxxx=\"xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx-xxxx xxxxx-xxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxx-x"}}
+{"event": "step_update", "step_update": {"text_delta": "\"\\xxx|            xxxx-xxxxxx=\"xxxxxx-xxxxxxx\"\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|          >\\xxx|     "}}
+{"event": "step_update", "step_update": {"text_delta": "       {xxxx.xxxxxxxx &&"}}
+{"event": "step_update", "step_update": {"text_delta": " (\\xxx|              <xxxxxx\\xxx|   "}}
+{"event": "step_update", "step_update": {"text_delta": "             xxxx=\"xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x\"\\xxx|     "}}
+{"event": "step_update", "step_update": {"text_delta": "           xxxxxxx=\"xxxxxxx\"\\xxx|                xxxx=\"xx\"\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|                xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx={xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x || xxxx}\\xxx|         "}}
+{"event": "step_update", "step_update": {"text_delta": "       xxxxxxx={() => xxxxxxx(xxxx.xxxxxx)}\\xxx|            "}}
+{"event": "step_update", "step_update": {"text_delta": "  >\\xxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "            xxxxx\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "            "}}
+{"event": "step_update", "step_update": {"text_delta": "</xxxxxx>\\xxx|            )}\\xxx|            {xxxx.xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx && (\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|              "}}
+{"event": "step_update", "step_update": {"text_delta": "<xxxxxx\\xxx|                xxxx=\"xxxxxx\"\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "            "}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxxx=\"xxxxxxx\"\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|                xxxx=\"xx\"\\xxx|                x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx={xxxxxxxx || xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x}\\xxx|     "}}
+{"event": "step_update", "step_update": {"text_delta": "           xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "={() => xxxxxxxx(xxxx.xxxxxx)}\\xxx|             "}}
+{"event": "step_update", "step_update": {"text_delta": " >\\xxx|     "}}
+{"event": "step_update", "step_update": {"text_delta": "           xxxxxx\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|              </xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ">\\xxx|            )}\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|            {xxxx.xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx && (\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|              <xxxxxx\\xxx|                xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "=\"xxxxxx\"\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|                xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x=\"xxxxxxx\"\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|                xxxx=\"xx\"\\xxxx|             "}}
+{"event": "step_update", "step_update": {"text_delta": "   xxxxxxxx={xxxxxxxx ||"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx}\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "                "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx={() => xxxxxx(xxxx.xxxxxx)}\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|              >\\xxxx|                xxxx\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|              </xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx>\\xxxx|            )}\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|       "}}
+{"event": "step_update", "step_update": {"text_delta": "   </xxx>\\xxxx|        </xxx>\\xxxx|\\xxxx|        <x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx=\"xxxx xxxx-xxxx xxxxx-xxxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x-x-x xxx-x-"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx-xx\">\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|          {xxxx.xxxxxxxxxxxx && (\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|            <xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx=\"xxxx-xxxxxx\""}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx-xxxxxx=\"xxxxxx-xxxxxxxx\">\\xxxx|           "}}
+{"event": "step_update", "step_update": {"text_delta": "   {xxxx.xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx}\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|            </xxxx>\\xxxx|          )}\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "      {xxxx.xxxxxxxxxx &"}}
+{"event": "step_update", "step_update": {"text_delta": "& (\\xxxx|            <"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx\\xxxx|              xxxxxxxxx={x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx_xxxx[xxxx.xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx]}\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|              xxxx-xxxxxx=\"xxxxxx-xxxxxx\"\\xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|            >\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "          "}}
+{"event": "step_update", "step_update": {"text_delta": "{xxxx.xxxxxxxxxx}\\xxxx|            <"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxx>\\xxxx|          )}"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|          {xxxx.xxxxxxxxxxxx && (\\xxxx|       "}}
+{"event": "step_update", "step_update": {"text_delta": "     <xxxx\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "              xxxxxxxxx=\"xxxx-xxxxx-xxxxxxxxxx\"\\xxxx|       "}}
+{"event": "step_update", "step_update": {"text_delta": "       xxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx=\"xxxxxx-xxxxxxxx\""}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxxx|            >\\xxxx|            "}}
+{"event": "step_update", "step_update": {"text_delta": "  {xxxx.xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx}\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "            </xxxx>\\xxxx|          )}\\xxxx|     "}}
+{"event": "step_update", "step_update": {"text_delta": "   </xxx>\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|\\xxxx|        {xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx && (\\xxxx|          <xxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx=\"xxxxxxxxxxx\" xxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx=\"xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx-xxxxxx-xxxxx\">\\xxxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "            <xxxxxxxxxxxxxxxx>{xxxxxxxxxxx}</xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxx>\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "      </xxxxx>\\xxxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "    )}\\xxxx|      </xxxxxxxxxxx>\\xxxx|    </"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx>\\xxxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": ")\\xxxx|}\\x\", \"xxxxx_xxxxx\": xxx, \"xxxx_xxxx\": "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx, \"xxxxxxxxx\": xxxxx, \"xx_xxxxxx\": xxxxx, \"x"}}
+{"event": "step_update", "step_update": {"text_delta": "x_xxxxx\": xxxxx,"}}
+{"event": "step_update", "step_update": {"text_delta": " \"xxx_xxxxx\": xxxxx}\n\nTool Result (call_38):\n{\"x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx\": \"x|"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " { xxxxxxxx } xxxx 'xxxxx'\\xx|xxxxxx { xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx } xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx '@/xxxxxxx/xxxxxx-xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx'\\xx|xxxxxx { xxxx, xxxxxxxxxxx } xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx '@/xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx/xx/xxxx'\\xx|xxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "{ xxxxx_xxxxxx } xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " '@/xxx/xxxxxxxx-xxxxxx'\\xx|xxxxxx { xxxxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "} xxxx './xxxxxx-xxxx'\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "x|xxxxxx { x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxxx xxxxxxxxxxx } xxxx './xxxxxx-xxx-xxxx-xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx'\\xx|xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x { xxxxxxxxxx } xxxx '."}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxx-xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "'\\xx|xxxxxx { xxxxxxxxxxxxxxxxx } xxxx './xxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx-xxxxxxxx'\\xx|\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xxxxx_xxxxxxxxxxxx: xxxxxxx<xxxxxx<xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx, xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ">> = {\\xxx|  xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ": 'xxxxxx',\\xxx|  xxxxxxx: 'xxxxxxx',\\xxx|  xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx_xxx_xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx: 'xxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxx',\\xxx|}\\xxx|\\xxx|xxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxx(\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ": xxx<xxxxxx, xxxxxxxxxxx>,\\xxx|  xxxx: xxxxx<{ "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx: xxxxxx; xxxxx: x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx; xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ": xxxxxxxxxxx }>\\xxx|): xxxxxx {\\xxx|  xxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: xxxxxx[] = []\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|  xxx (xxxxx xxxx xx xxxx) {\\xxx|    xxxxx xxxxx = xxxxx_x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "[xxxx.xxxxx]\\xxx|    xx (xxxxx && xxxx.xxx(xxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx) !== xxxx.xxxxx)"}}
+{"event": "step_update", "step_update": {"text_delta": " {\\xxx|      xxxxx.xxxx(`${xxxx.xxxxx} ${xxxxx}`"}}
+{"event": "step_update", "step_update": {"text_delta": ")\\xxx|    }\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "}\\xxx|  xxxxxx xxxxx.xxxx('; ')\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "}\\xxx|\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxxxxxx xxxxxxxxxxxxxxxxx() {\\xxx|  xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x { xxxx, xxxxx, xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx, xxxxxxx } = x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxx()\\xxx|  xxxxx xxxxx = xxxx ? xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxx(xxxx) : []"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx { xxxxxxxxxx, xxxxxxxxxxx, xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx, xxxxx, xxxxxx, "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx } = xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxx()\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx [xxxxxxxxxxxxxx, xxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx] = xxxxxxxx<xxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "| xxxx>(xxxx)\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|\\xxx|  xxxxx [xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x, xxxxxxxxxxxxx] = xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx<xxx<xxxxxx, xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx>>(\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "    () => xxx xxx()\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "  )\\xxx|  xxxxx [xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx, xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx] = xxxxxxxx('')"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|\\xxx|  xx (xxxx) {\\xxx|    xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxx = xxx xxx(xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x."}}
+{"event": "step_update", "step_update": {"text_delta": "xxx((x) => [x.xxxxxx, x.xxxxx]))\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|    xxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx = xxxxxxxxxxxxxxxx(xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx, xxxxx)\\xxx|    xx (xxx !== x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx) {\\xxx|      "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx(xxx)\\xxx|    }\\xxx|    xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxx =\\xxx|      xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx === xxxxxxxxxx.xxxx &&\\xxx|      [...xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x.xxxxxxx()]"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxx(([x, x"}}
+{"event": "step_update", "step_update": {"text_delta": "]) => xxxxxxxxxx.xxx(x) === x)\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "   xx (!xxxxxxxx) {\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|      xxxxxxxxxxxxx(xxxxxxx)\\xxx|    }\\xxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "}\\xxx|\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|  xxxxx xxxxxxxxxx = xxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxx|    ? xxxxx.xxxx((x"}}
+{"event": "step_update", "step_update": {"text_delta": ") => x.xxxxxx === xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx) ??"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx\\xxx|    : xxxx\\xxx|\\xxx|  xxxxxx (\\xxx|    <xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|      xxxx-xxxxxxxxxx=\"xx-xxxxxxxx-xxxxxxx\"\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|      xxxxxxxxx=\"xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-x-x\"\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|      xxxx-xxxxxx=\"xx-xxxxxxxx-xxxxxxx\"\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "    >\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|      <xxx xxxxxxxxx=\"xxxx xxxx-xxxx xxxxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xxxxxxx-xxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-x\">\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|        <xx xx=\"xx-xxxxxxxx-xxxxxxx\" xxxxxxxxx="}}
+{"event": "step_update", "step_update": {"text_delta": "\"xxxx-xx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x-xxxxxxxx\">\\xxx|       "}}
+{"event": "step_update", "step_update": {"text_delta": "   xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxx\\xxx|        </xx>\\xxx|        <xxxx\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|          "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx=\""}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx-xx xxxx-xxxxx-xxxxxxxxxx\"\\xxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "         xxxx-xxxxxx=\"xx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxxxxx-xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx\"\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|        >\\xxx|          {xxxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx === x ? 'x xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "' :"}}
+{"event": "step_update", "step_update": {"text_delta": " `${xxxxx.xxxxxx} xxxxxxx`}\\xxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "    </xxxx>\\xxx|      </"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx>\\xxx|\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "|      <xxx xxxxxxxxx=\"xx-xxxx\" xxxx-xxxx=\"xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x\" xxxx-xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx=\"xx-xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxx\">\\xxx|        {xxxxxxxxxxx}\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|      </xxx>\\xxx|\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "      {xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xxxxxx === x ? (\\xxx|        <xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx-xxxxxx=\"xx-xxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxx\">\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|          <xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx xxxxxxxxx=\"xx-x xxxx-xx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxx-xxxxxxxxxx\">\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "            xx xxxxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx.\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|          </xxxxxxxxxxx>\\xxx|     "}}
+{"event": "step_update", "step_update": {"text_delta": "   </xxxx>\\xxx|      ) :"}}
+{"event": "step_update", "step_update": {"text_delta": " (\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|        <xxx xxxxxxxxx=\"xxxxx-x-x\" xxxx-xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x=\"xx-xxxxxxxx-xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\">\\xxx|          {xxxxx.xxx((xxxx) => (\\xxx|    "}}
+{"event": "step_update", "step_update": {"text_delta": "        <xxxxxxxxxx\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "              xxx={xxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx}\\xxx|"}}
+{"event": "step_update", "step_update": {"text_delta": "              xxxx={xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "}\\xxx|              xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx={xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx}\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|              xxxx={xxxxxxxxxx === xxxx.xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx}\\xxx|              xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx={xxxxxxxxxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx(xxxx.xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": ") ?? xxxx}\\xxx|              xxxxxxx={xxxxx}\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "|              xxxxxxxx="}}
+{"event": "step_update", "step_update": {"text_delta": "{xxxxxx}\\xxx|           "}}
+{"event": "step_update", "step_update": {"text_delta": "   "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx={(xxxxxx) => {\\xxx|                xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx(xxxxxx)"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxxx|                xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxx(xxxxxx)\\xxxx|              }}\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|            />\\xxxx|  "}}
+{"event": "step_update", "step_update": {"text_delta": "        ))"}}
+{"event": "step_update", "step_update": {"text_delta": "}\\xxxx|        </xxx>\\xxxx|      )}\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx|\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|      <xxxxxxxxxx\\xxxx|        xxxx={xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x !== xxxx}\\xxxx|       "}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx={"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxx}\\xxxx|        xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx={xxxxxxxxxxxxxxxx}"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxxx|        xxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx={(xxxx) ="}}
+{"event": "step_update", "step_update": {"text_delta": "> {\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|          xx (!xxxx) xxxxxxxxxxxxxxxxx(xxxx)"}}
+{"event": "step_update", "step_update": {"text_delta": "\\xxxx|      "}}
+{"event": "step_update", "step_update": {"text_delta": "  }}\\xxxx|        "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx={xxxxx (xxxxxx, xxxxxx) =>"}}
+{"event": "step_update", "step_update": {"text_delta": " {\\xxxx|          xxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx = xxxxx xxxx(xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx, xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ")\\xxxx|          xx (xxxxxx.xx) {\\xxxx|         "}}
+{"event": "step_update", "step_update": {"text_delta": "   xxxxxxxxxxxxxxxxx("}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx)\\xxxx|          }\\xxxx|        "}}
+{"event": "step_update", "step_update": {"text_delta": "  xxxxxx xxxxxx\\xxxx|   "}}
+{"event": "step_update", "step_update": {"text_delta": "     "}}
+{"event": "step_update", "step_update": {"text_delta": "}}\\xxxx|      />\\xxxx|\\xxxx|      {xxxxx && (\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": "|        <x\\xxxx|          xxxxxxxxx=\"xxxx-xx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx-xxxxx-xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx\"\\xxxx|          "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx=\"xxxxxx\"\\xxxx|          xxxx-xxxxxx=\"xxxxx-"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx\"\\xxxx| "}}
+{"event": "step_update", "step_update": {"text_delta": "       "}}
+{"event": "step_update", "step_update": {"text_delta": ">\\xxxx|          {xxxxx_xxxxxx}\\xxxx|        </x"}}
+{"event": "step_update", "step_update": {"text_delta": ">\\x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|      )}\\xxxx|    </xxxxxxx>\\xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x|  )\\xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|}\\x\", \"xxxxx_xxxxx\": xxx, \"xxxx_xxxx\": xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ", \"xxxxxxxxx\": xxxxx, \"xx_xxxxxx\": xxxxx, \"xx_xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx\": xxxxx, \"xxx_xxxxx\""}}
+{"event": "step_update", "step_update": {"text_delta": ": xxxxx}\n\n"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx:\nxxx! xxx xxxxxxxx xxxxx xxx xxxxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx x & xxxxxxx xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx x (xx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxx-xxxxx.xx`, `xxxxxxxx-xxxxx.xx`, `xxxxxx-xxx-xxxx-xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ".xx"}}
+{"event": "step_update", "step_update": {"text_delta": "`, `xxx-xxxxx.xxxx.xx`, `xxxxxx-xxx-xxxx-xxxxx.x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx.xx` xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxx xx xxxx xxxxxxxxx xxxxx xx `xxxxxxx`).\nxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: xxx'x xxxxx xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxxxx! xxx'x xxxx:\n- `xxxxxx-xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx.xx` xxxxx x-xxx (xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxx xxxxxxxxx) xx xxxx xxxx xx xxx'x xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx, xxxxx xxxx, xx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx.\n- `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx/xxxx/xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxxxxx.xx` (xxxxxxxxxx xxxxxx `xxxxxxxxxxxxx`"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx `xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxx x.x` / `xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "`) xxx `xxxx/xxxxxxx-xxxxxxxx.xx` (xx xxxx xxxx)"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxx xxxx xx-x xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x!\n- `xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/xxxxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx/xxxxxxxx-xxxx.xxxx.xx` xx xxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " `xxxxxxx-xxxxxxxx.xx`.\n"}}
+{"event": "step_update", "step_update": {"text_delta": "- `xxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxxx/xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xx-xxxxxxxx-xxxxx.xxxx.xx`\n- `xxxxxxxxx/xxx/xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxxxxx-xxxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "xx` xxx `xxxxxxxxx/xxx/xxx/xxxxxx-xxxx.xx`\n- `xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx/xxx/"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxxxxxx-xxxxx.xx` (xxxxxx `xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx`)\n\nxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x'x xxxxx xxxxx xxxxx."}}
+{"event": "step_update", "step_update": {"text_delta": "<tool_call>{\"id\": \""}}
+{"event": "step_update", "step_update": {"text_delta": "call_39\", \"type\": \"function\", \"funct"}}
+{"event": "step_update", "step_update": {"text_delta": "ion\": {\"name"}}
+{"event": "step_update", "step_update": {"text_delta": "\": \"read_file\", \"argumen"}}
+{"event": "step_update", "step_update": {"text_delta": "ts"}}
+{"event": "step_update", "step_update": {"text_delta": "\": \"{\\\"limit\\\":210,\\\"offset\\\":1,\\\"pa"}}
+{"event": "step_update", "step_update": {"text_delta": "th\\\":\\\"/xxxx/xxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxxx\\\"}\"}}</tool_call>\n<too"}}
+{"event": "step_update", "step_update": {"text_delta": "l_call>{\"id\": \"call_40\","}}
+{"event": "step_update", "step_update": {"text_delta": " \"type\": \"function\", \"fu"}}
+{"event": "step_update", "step_update": {"text_delta": "nction\": {\"n"}}
+{"event": "step_update", "step_update": {"text_delta": "ame\": \"read_"}}
+{"event": "step_update", "step_update": {"text_delta": "file\", \"arguments\": \"{\\\"limit\\\":300,\\\"offset\\\":1"}}
+{"event": "step_update", "step_update": {"text_delta": ",\\\"path\\\":\\\""}}
+{"event": "step_update", "step_update": {"text_delta": "/xxxx/xxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "\\\"}\"}}</tool_call>\n<tool_call>{\"id\": \"call_41\", "}}
+{"event": "step_update", "step_update": {"text_delta": "\"type"}}
+{"event": "step_update", "step_update": {"text_delta": "\": \"function\", \"function\": {\"name\": \"read_file\","}}
+{"event": "step_update", "step_update": {"text_delta": " \"arguments\": \"{\\\"limit\\"}}
+{"event": "step_update", "step_update": {"text_delta": "\":200"}}
+{"event": "step_update", "step_update": {"text_delta": ",\\\"offset\\\":1,\\\"path\\\":\\\"/xxxx/xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\\"}\""}}
+{"event": "step_update", "step_update": {"text_delta": "}}</"}}
+{"event": "step_update", "step_update": {"text_delta": "tool_call>\n<tool_call>{\"id\": \"call_42\", \"type\": "}}
+{"event": "step_update", "step_update": {"text_delta": "\"function"}}
+{"event": "step_update", "step_update": {"text_delta": "\", \"function\": {\"name\": \"terminal\", \"arguments\": \"{\\\"command"}}
+{"event": "step_update", "step_update": {"text_delta": "\\\":\\\"xx /xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx/xxxxxxxxxxx/.xxxxx/xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx/xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "/xxx/xxxxxxxxx/xxxxx-xx && xxx xxxx xxxxxxxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxxxxxxxxxxxxxx --xxxx && xxx xxxx xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "..xxxx --xxxx\\\"}\"}}</tool_call>\n\nToo"}}
+{"event": "step_update", "step_update": {"text_delta": "l Result (call_39):\n{\"xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx\": \"x|#"}}
+{"event": "step_update", "step_update": {"text_delta": " xx xxxxxxxx xxxxx: xxxx xxxx xxx xxxxxx xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxx xxxx xxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx xxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxxxxxx\\xx|\\xx|# xxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x: xx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxxx: xxxxxxx xxxx xxx xxxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx\\xx|\\xx|## xxxxxx\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xx|\\xx|"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxxxx xxxxxx'x xx xxxxxxxx xxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx xxxx xxx xxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xx xxx xxx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": " x xxxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxx x xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxx xxxxxxx xxxxxxx xxx xxx xxxx xxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxx xxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx xx xxxxxx:\\xx|\\xx|x"}}
+{"event": "step_update", "step_update": {"text_delta": ". **xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxxxx xxxxxxx** \u2014 `\"xxxxxxx xx:xx\"` xx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx xxx xxxxx (x.x. `\"xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": ":xx\"`), xx `\"xxxxxxx x xxx xx:xx\"` xxxx xx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx xx xxxxxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " (xxxxxx/xxxxxx, xxxxxxxx xxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx'x xxxxxxxx xxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxx).\\xxx|x. **xxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxx xxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxx xxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxx xxxxxxx** \u2014 xxx xxxx'x xxxxxxx xxxx xx xxx xxxxxxxx "}}
+{"event": "step_update", "step_update": {"text_delta": "xxxx (`xx x "}}
+{"event": "step_update", "step_update": {"text_delta": "xx x \u00b7 xxxx:"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxx xxxxxxx \u00b7 xxx`)"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxxxxxx xxxx xxxxxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxxxx xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "x x xxxxxxxxx xxxxx (`xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxxx.xxx()`) xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xx xxx xxxx'x `xxxx.xxx`.\\xxx|\\xxx|xx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxx `\"xxxxxxx \u2026\"` x"}}
+{"event": "step_update", "step_update": {"text_delta": "x xxx xxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxxx xxxxxxx"}}
+{"event": "step_update", "step_update": {"text_delta": " xxxxxxx, xxxx xxxx xxx xxxx xxxxx xx xxx xxxx x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx: xxxx `\""}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxxxxx: \"` xxx xxxx xx"}}
+{"event": "step_update", "step_update": {"text_delta": "xx xxx xxxxx xxxx xxxx ("}}
+{"event": "step_update", "step_update": {"text_delta": "`xxxx"}}
+{"event": "step_update", "step_update": {"text_delta": "-xxxxxxxx` xxxxxxx xx `xxxxxxxx: xxxx-xxxxxxxx`)"}}
+{"event": "step_update", "step_update": {"text_delta": ", xxxx xxx xxxx `xxxx` x"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx xx x `"}}
+{"event": "step_update", "step_update": {"text_delta": "xxxxx` xxxxxxx.\\"}}
+{"event": "step_update", "step_update": {"text_delta": "xxx|\\xxx|## xxxx xxxxxx xxxxxxx\\xxx|"}}

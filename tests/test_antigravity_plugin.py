@@ -684,6 +684,17 @@ class AntigravityPluginTests(unittest.TestCase):
         # Suffix override: model had -high but effort was set to low
         self.assertEqual(client._resolve_model_and_effort("gemini-3.8-flash-high", "low"), ("gemini-3.8-flash-low", "low"))
 
+        # Gemini 4 ids that name their effort keep it over reasoning_effort (per-role picks).
+        g4 = {"gemini-4-argon": ("low", "medium", "high"), "gemini-4-hydrogen": ("low", "medium", "high"),
+              "gemini-4-hydrogen-xhigh": ()}
+        with patch("models._catalog_cache", (float("inf"), g4)):
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-argon-medium", "high"),
+                             ("gemini-4-argon-medium", "medium"))
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen-xhigh", "low"),
+                             ("gemini-4-hydrogen-xhigh", None))
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen", "high"),
+                             ("gemini-4-hydrogen-high", "high"))
+
         # Claude Sonnet 4.6 and Opus 4.6 are selected by bare name, without --effort.
         self.assertEqual(client._resolve_model_and_effort("claude-sonnet-4-6", "low"), ("claude-sonnet-4-6", None))
         self.assertEqual(client._resolve_model_and_effort("claude-sonnet-4-6", "medium"), ("claude-sonnet-4-6", None))
@@ -1072,31 +1083,6 @@ class AntigravityPluginTests(unittest.TestCase):
         self.assertIn("--disable-slash-commands", profile.process_args)
         self.assertIn("--output-format", profile.process_args)
 
-    def test_native_tool_step_neutralization_in_stream(self):
-        # TemporaryDirectory (not /tmp): on Windows "/tmp" resolves to a
-        # drive-rooted \tmp with no guaranteed write access, and an
-        # explicit cwd is never cleaned by close() — addCleanup removes it.
-        tmp_dir = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp_dir.cleanup)
-        client = AntigravityClient(cwd=tmp_dir.name)
-        fake_events = [
-            json.dumps({"event": "init", "conversation_id": "test-sec-conv"}),
-            json.dumps({"event": "step_update", "step_update": {"step_type": "tool", "tool_name": "run_command"}}),
-        ]
-        mock_proc = MagicMock()
-        mock_proc.poll.return_value = None
-        mock_proc.stdout.readline.side_effect = [f"{line}\n" for line in fake_events] + [""]
-        mock_proc.stdin = MagicMock()
-
-        with patch("subprocess.Popen", return_value=mock_proc), patch.object(client, "_terminate_process") as mock_term:
-            stream = client.chat.completions.create(
-                model="gemini-3.8-flash",
-                messages=[{"role": "user", "content": "hi"}],
-                stream=True,
-            )
-            chunks = list(stream)
-            mock_term.assert_called_once_with(mock_proc)
-
     def test_temp_directory_isolation_and_cleanup(self):
         client = AntigravityClient()
         temp_dir = client._cwd
@@ -1202,6 +1188,11 @@ class AntigravityPluginTests(unittest.TestCase):
             self.assertEqual(client._worker_conversation_id, "conv-persistent-42")
             # First spawn should NOT have --conversation
             self.assertNotIn("--conversation", worker_spawns[0])
+
+            # agy keeps the conversation on disk; a resume is only attempted when it is there.
+            conv_dir = Path(client._isolated_gemini_dir) / "conversations"
+            conv_dir.mkdir(parents=True, exist_ok=True)
+            (conv_dir / "conv-persistent-42.db").write_bytes(b"")
 
             # Simulate worker process dying or reaped while keeping conversation
             client._terminate_worker(keep_conversation=True)
