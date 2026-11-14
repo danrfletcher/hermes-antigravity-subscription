@@ -334,3 +334,25 @@ def test_salvage_never_takes_a_granted_media_read(tmp_path):
     chunks = list(stream)
     calls = [c for ch in chunks for choice in ch.choices for c in (choice.delta.tool_calls or [])]
     assert calls == [] and stream._bad_turn is None
+
+
+def test_endless_blank_tail_after_the_calls_is_cut():
+    # Live (soak c2): four good calls, then blank lines for 300s until the stream deadline.
+    blanks = ["\n\n    " for _ in range(2000)]
+    lines = _deltas(_call("a"), *blanks) + [_result()]
+    calls, content, finish, client, _p, stream = _run(lines, is_worker=True, poll=None)
+    assert [c.id for c in calls] == ["a"] and finish == ["tool_calls"] and content == ""
+    assert "blank characters after the tool calls" in stream._bad_turn
+    client._update_worker_history.assert_not_called()
+
+
+def test_endless_blank_tail_inside_one_delta_is_cut_too():
+    lines = _deltas(_call("a") + " " * 9000) + [_result()]
+    calls, _c, finish, _cl, _p, stream = _run(lines, is_worker=True, poll=None)
+    assert [c.id for c in calls] == ["a"] and stream._bad_turn
+
+
+def test_a_few_blank_lines_after_the_calls_are_fine():
+    lines = _deltas(_call("a"), "\n\n", _call("b"), "\n   \n") + [_result()]
+    calls, _c, finish, _cl, _p, stream = _run(lines, is_worker=True, poll=None)
+    assert [c.id for c in calls] == ["a", "b"] and stream._bad_turn is None

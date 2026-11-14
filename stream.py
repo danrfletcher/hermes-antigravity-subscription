@@ -31,6 +31,7 @@ try:
         invented_result_marker,
         media_reference_paths,
         runaway_verdict,
+        RUNAWAY_TRAILING_MAX_CHARS,
     )
 except ImportError:
     from process import _check_early_quota_error
@@ -46,6 +47,7 @@ except ImportError:
         invented_result_marker,
         media_reference_paths,
         runaway_verdict,
+        RUNAWAY_TRAILING_MAX_CHARS,
     )
 
 logger = logging.getLogger(__name__)
@@ -811,6 +813,9 @@ class AntigravityStream(Iterator[Any]):
         # already emitted go to Hermes, agy is stopped, and the turn is marked bad.
         runaway_cut = False
         after_calls_text: str | None = None
+        # Whitespace streamed between/after the calls (stripped, so never in after_calls_text).
+        # Seen live: Hydrogen wrote four good calls, then 115k chars of blank lines for 300s.
+        blank_after_calls = 0
         pre_call_text = ""
         hook_denials = 0
         # step_index -> the Hermes call salvaged from a native function call (salvage_native_call).
@@ -1018,6 +1023,10 @@ class AntigravityStream(Iterator[Any]):
                             yield self._make_chunk(content=text_delta)
                         elif after_calls_text is not None:
                             after_calls_text += text_delta
+                            if not text_delta.strip():
+                                blank_after_calls += len(text_delta)
+                                if blank_after_calls > RUNAWAY_TRAILING_MAX_CHARS:
+                                    runaway_cut = True
                             verdict = runaway_verdict(after_calls_text)
                             if verdict:
                                 runaway_cut = True
@@ -1055,6 +1064,12 @@ class AntigravityStream(Iterator[Any]):
                                         # Between frames after a call: only
                                         # whitespace or another frame is valid.
                                         stripped = text_buffer.lstrip()
+                                        blank_after_calls += len(text_buffer) - len(stripped)
+                                        if blank_after_calls > RUNAWAY_TRAILING_MAX_CHARS:
+                                            after_calls_text = text_buffer
+                                            text_buffer = ""
+                                            runaway_cut = True
+                                            break
                                         if not stripped or _TOOL_CALL_OPEN.startswith(stripped):
                                             text_buffer = stripped
                                             break
@@ -1107,6 +1122,8 @@ class AntigravityStream(Iterator[Any]):
                         if runaway_cut:
                             why = (runaway_verdict(after_calls_text) if after_calls_text is not None
                                    else "invented tool results in the answer")
+                            if why is None:
+                                why = f"{blank_after_calls} blank characters after the tool calls"
                             logger.warning(
                                 "Antigravity runaway guard: %s; cutting the turn after %d call(s).",
                                 why, next_tool_call_index,
