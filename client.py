@@ -8,9 +8,11 @@ existing Antigravity / Gemini subscription quota.
 from __future__ import annotations
 
 import contextlib
+import functools
 import json
 import logging
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -361,6 +363,34 @@ def _force_rmtree(path: str) -> None:
                     | (stat.S_IXUSR if is_dir else 0),
                 )
     shutil.rmtree(path, ignore_errors=True)
+
+
+# Spec and plan reads among the first steps of a worker's history stay whole in a fitted resend.
+_PINNED_READ_WINDOW = 12
+_SPEC_OR_PLAN_READ = re.compile(r"(?:briefs/[^\"'\s]*\.spec\.md|ticket-plan\.md)")
+
+
+def _step_groups(messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    """Messages grouped into steps: an assistant message with the tool results that answer it."""
+    groups: list[list[dict[str, Any]]] = []
+    for message in messages:
+        if message.get("role") == "tool" and groups:
+            groups[-1].append(message)
+        else:
+            groups.append([message])
+    return groups
+
+
+def _reads_spec_or_plan(group: list[dict[str, Any]]) -> bool:
+    head = group[0]
+    if head.get("role") != "assistant" or len(group) < 2:
+        return False
+    for call in head.get("tool_calls") or []:
+        fn = call.get("function") if isinstance(call, dict) else None
+        args = fn.get("arguments") if isinstance(fn, dict) else None
+        if _SPEC_OR_PLAN_READ.search(args if isinstance(args, str) else json.dumps(args or {})):
+            return True
+    return False
 
 
 def _migrate_store_home(root: Path) -> None:
@@ -963,45 +993,59 @@ class AntigravityClient:
         return (Path(self._isolated_gemini_dir) / "conversations" / f"{conversation_id}.db").exists()
 
     def _fit_full_prompt(self, messages, *, model, tools, tool_choice) -> tuple[str, bool]:
-        """Full-history prompt that stays under agy's single-message limit.
+        """Full-history prompt that stays under agy's single-message limit (UTF-8 bytes).
 
-        agy silently keeps only the beginning of an oversized message, so when the history is too
-        large the OLDEST messages are left out (with a note) rather than the newest."""
+        agy silently keeps only the beginning of an oversized message. In order, until it fits:
+        older tool results kept long (skills, workflow files), then cut short; then whole older
+        steps (an assistant message with its tool results, never split) are left out, oldest first,
+        with a note. Always kept: the system prompt, the first user message (a worker's brief, or
+        Hermes' compaction summary), early reads of the ticket's spec and plan, and the newest steps.
+        Returns ``(prompt, trimmed)``.
+        """
         limit = _session_store.max_prompt_chars()
-        # Prefer keeping older tool results (skills, workflow files) intact; they carry
-        # instructions the model must still follow after a resend.
-        prompt = _format_messages_as_prompt(messages, model=model, tools=tools, tool_choice=tool_choice,
-                                            media_sink=self._materialized_media, historical_tool_chars=20000)
-        if _session_store.prompt_size(prompt) <= limit:
+        size = _session_store.prompt_size
+        fmt = functools.partial(_format_messages_as_prompt, model=model, tools=tools, tool_choice=tool_choice,
+                                media_sink=self._materialized_media)
+        prompt = fmt(messages, historical_tool_chars=20000)
+        if size(prompt) <= limit:
             return prompt, False
-        prompt = _format_messages_as_prompt(messages, model=model, tools=tools, tool_choice=tool_choice,
-                                            media_sink=self._materialized_media)
-        if _session_store.prompt_size(prompt) <= limit:
+        prompt = fmt(messages)
+        if size(prompt) <= limit:
             return prompt, False
-        head = 0
-        while head < len(messages) and isinstance(messages[head], dict) and messages[head].get("role") in ("system", "developer"):
-            head += 1
-        system, body = list(messages[:head]), list(messages[head:])
-        cuts = [i for i, m in enumerate(body) if i > 0 and isinstance(m, dict) and m.get("role") == "user"]
-        if not cuts or cuts[-1] != len(body) - 1:
-            cuts.append(max(len(body) - 1, 0))
 
-        def render(cut: int) -> str:
-            note = {"role": "system", "content": (
-                f"Note: the {cut} oldest messages of this conversation are not shown because the full "
-                "history is larger than one Antigravity prompt allows. Earlier context may be incomplete.")}
-            return _format_messages_as_prompt(system + [note] + body[cut:], model=model, tools=tools,
-                                              tool_choice=tool_choice, media_sink=self._materialized_media)
+        valid = [m for m in messages if isinstance(m, dict)]
+        system = [m for m in valid if m.get("role") in ("system", "developer")]
+        body = [m for m in valid if m.get("role") not in ("system", "developer")]
+        first = body[:1] if body and body[0].get("role") == "user" else []
+        groups = _step_groups(body[len(first):])
+        pinned = {gi for gi, group in enumerate(groups[:_PINNED_READ_WINDOW]) if _reads_spec_or_plan(group)}
+        keep_whole = {id(m) for gi in pinned for m in groups[gi] if m.get("role") == "tool"}
 
-        lo, hi, best = 0, len(cuts) - 1, None
-        while lo <= hi:
-            mid = (lo + hi) // 2
-            candidate = render(cuts[mid])
-            if _session_store.prompt_size(candidate) <= limit:
-                best, hi = candidate, mid - 1
-            else:
-                lo = mid + 1
-        return (best if best is not None else render(cuts[-1])), True
+        def render(keep_from: int, *, pin: bool = True) -> str:
+            kept_early = [m for gi in sorted(pinned) if pin and gi < keep_from for m in groups[gi]]
+            left_out = sum(len(groups[gi]) for gi in range(keep_from) if not (pin and gi in pinned))
+            note = [{"role": "system", "content": (
+                f"Note: {left_out} of the oldest messages of this conversation are not shown (earlier "
+                "tool calls and their results), because the full history is larger than one Antigravity "
+                "prompt allows. Files on disk already reflect that work: re-read them when you need their "
+                "current state instead of redoing it.")}] if left_out else []
+            tail = [m for group in groups[keep_from:] for m in group]
+            return fmt(system + note + first + kept_early + tail, keep_whole=keep_whole if pin else None)
+
+        best = None
+        for pin in (True, False):
+            lo, hi = 1, len(groups) - 1  # always keep the newest step
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                candidate = render(mid, pin=pin)
+                if size(candidate) <= limit:
+                    best, hi = candidate, mid - 1
+                else:
+                    lo = mid + 1
+            if best is not None:
+                return best, True
+        logger.warning("Antigravity: even the newest step alone is larger than one prompt allows")
+        return render(max(len(groups) - 1, 0), pin=False), True
 
     def _prepare_worker_turn(self, *, session_id, model, effort, messages, tools, tool_choice):
         """``(proc, prompt, branch)`` for the next worker turn: send agy only what it has not seen."""

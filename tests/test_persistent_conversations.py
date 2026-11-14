@@ -352,8 +352,65 @@ class PersistentClientTests(unittest.TestCase):
         self.assertLessEqual(len(prompt), 20000)
         self.assertIn("NEWEST QUESTION", prompt)
         self.assertIn("You are Vector.", prompt)
-        self.assertNotIn("old 0 ", prompt)
+        self.assertIn("old 0 ", prompt)  # the first user message (a worker's brief) is pinned
+        self.assertNotIn("old 1 ", prompt)
         self.assertIn("oldest messages of this conversation are not shown", prompt)
+
+    def test_fitted_resend_keeps_brief_spec_reads_and_newest_steps_whole(self):
+        def step(i, path, size):
+            call = {"id": f"c{i}", "type": "function",
+                    "function": {"name": "read_file", "arguments": json.dumps({"path": path})}}
+            return [{"role": "assistant", "content": None, "tool_calls": [call]},
+                    {"role": "tool", "tool_call_id": f"c{i}", "content": f"RESULT {i} " + "z" * size}]
+
+        m = [self.SYSTEM, {"role": "user", "content": "BRIEF " + "b" * 3000}]
+        m += step(0, "briefs/PR-3.spec.md", 6000)
+        m += step(1, "ticket-plan.md", 2000)
+        for i in range(2, 30):
+            m += step(i, f"src/file{i}.py", 1500)
+        with patch.dict(os.environ, {"ANTIGRAVITY_MAX_PROMPT_CHARS": "30000"}):
+            cl = self.client()
+            try:
+                prompt, trimmed = cl._fit_full_prompt(m, model="fixture", tools=None, tool_choice=None)
+            finally:
+                cl.close()
+        self.assertTrue(trimmed)
+        self.assertLessEqual(len(prompt.encode()), 30000)
+        self.assertIn("BRIEF " + "b" * 3000, prompt)
+        self.assertIn("RESULT 0 " + "z" * 6000, prompt)  # spec read whole, though old
+        self.assertIn("RESULT 1 " + "z" * 2000, prompt)
+        self.assertIn("RESULT 29 ", prompt)
+        self.assertNotIn("RESULT 2 ", prompt)
+        self.assertIn("Files on disk already reflect that work", prompt)
+        # Steps are never split: a kept call always comes with its result.
+        for i in range(2, 30):
+            self.assertEqual(f'"id": "c{i}"' in prompt, f"RESULT {i} " in prompt, i)
+
+    def test_long_request_is_not_restated_whole(self):
+        brief = "BRIEF-START " + "q" * 20000
+        m = [self.SYSTEM, {"role": "user", "content": brief}]
+        m += [{"role": "assistant", "content": None, "tool_calls": [
+                  {"id": "c1", "type": "function", "function": {"name": "read_file", "arguments": "{}"}}]},
+              {"role": "tool", "tool_call_id": "c1", "content": "R1"}]
+        cl = self.client()
+        try:
+            prompt, _ = cl._fit_full_prompt(m, model="fixture", tools=None, tool_choice=None)
+        finally:
+            cl.close()
+        self.assertEqual(prompt.count("q" * 20000), 1)
+        self.assertGreaterEqual(prompt.count("BRIEF-START"), 2)  # restated by its opening
+
+    def test_tool_delta_restates_a_long_request_by_its_opening(self):
+        import prompt as P
+        brief = "BRIEF-START " + "q" * 20000
+        delta = P._format_delta_prompt([{"role": "tool", "tool_call_id": "c1", "content": "R1"}],
+                                       pending_user_text=brief)
+        self.assertIn("BRIEF-START", delta)
+        self.assertNotIn("q" * 2000, delta)
+        self.assertIn("earlier in this conversation", delta)
+        short = P._format_delta_prompt([{"role": "tool", "tool_call_id": "c1", "content": "R1"}],
+                                       pending_user_text="list files")
+        self.assertIn("list files", short)
 
     def test_full_prompt_limit_counts_utf8_bytes(self):
         # agy cuts one message by bytes: 3-byte characters fill the limit three times faster.
