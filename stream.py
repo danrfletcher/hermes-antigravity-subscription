@@ -978,9 +978,13 @@ class AntigravityStream(Iterator[Any]):
                             state = str(step.get("state") or "")
                             if state == "ERROR":
                                 hook_denials += 1
+                                info = step.get("tool_info")
+                                params = info.get("parameters") if isinstance(info, dict) else None
                                 logger.info(
-                                    "Antigravity native tool '%s' denied (%d this turn): %s",
-                                    tool_name, hook_denials, _tool_step_error(step)[:200],
+                                    "Antigravity native tool '%s' denied (%d this turn), arguments %s: %s",
+                                    tool_name, hook_denials,
+                                    sorted(params) if isinstance(params, dict) else type(params).__name__,
+                                    _tool_step_error(step)[:200],
                                 )
                                 if hook_denials > MAX_HOOK_DENIALS_PER_TURN:
                                     self._cut_bad_turn(
