@@ -356,3 +356,19 @@ def test_a_few_blank_lines_after_the_calls_are_fine():
     lines = _deltas(_call("a"), "\n\n", _call("b"), "\n   \n") + [_result()]
     calls, _c, finish, _cl, _p, stream = _run(lines, is_worker=True, poll=None)
     assert [c.id for c in calls] == ["a", "b"] and stream._bad_turn is None
+
+
+def test_endless_stream_of_calls_is_capped_and_cut():
+    # Live (soak d1): one turn streamed ~500 tool calls for 300s.
+    from stream import MAX_TOOL_CALLS_PER_TURN as cap
+    lines = _deltas(*[_call(f"c{i}") for i in range(cap + 20)]) + [_result()]
+    calls, content, finish, client, _p, stream = _run(lines, is_worker=True, poll=None)
+    assert [c.id for c in calls] == [f"c{i}" for i in range(cap)]
+    assert finish == ["tool_calls"] and f"more than {cap} tool calls" in stream._bad_turn
+    client._update_worker_history.assert_not_called()
+
+
+def test_a_large_but_sane_batch_of_calls_is_kept():
+    lines = _deltas(*[_call(f"c{i}") for i in range(17)]) + [_result()]
+    calls, _c, finish, client, _p, stream = _run(lines, is_worker=True, poll=None)
+    assert len(calls) == 17 and stream._bad_turn is None

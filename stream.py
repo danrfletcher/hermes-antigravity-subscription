@@ -109,6 +109,9 @@ def _path_is_native_media_target(path: str, referenced: set[str]) -> bool:
 # A turn that keeps retrying agy's own tools after this many hook denials is cut and recovered:
 # denials come back in ~0.1 s with rc 0, so nothing else stops a model that keeps trying.
 MAX_HOOK_DENIALS_PER_TURN = 3
+# Seen live (soak, Hydrogen xhigh): one turn streamed ~500 tool calls for 300s. Real coder turns
+# make at most ~17. Calls past this cap are not delivered and the turn is cut and recovered.
+MAX_TOOL_CALLS_PER_TURN = 32
 SILENCE_ENV = "ANTIGRAVITY_SILENCE_SECONDS"
 DEFAULT_SILENCE_SECONDS = 90.0
 
@@ -771,6 +774,8 @@ class AntigravityStream(Iterator[Any]):
         has_tool_calls = False
         used_tool_call_ids: set[str] = set()
         next_tool_call_index = 0
+        calls_over_cap = False
+        runaway_why: str | None = None
 
         def identify_calls(calls: list[Any]) -> Iterator[Any]:
             """Give every emitted call a unique OpenAI index and id.
@@ -781,8 +786,11 @@ class AntigravityStream(Iterator[Any]):
             host keys deltas by (index, id), so both must be unique for the
             whole turn.
             """
-            nonlocal next_tool_call_index
+            nonlocal next_tool_call_index, calls_over_cap
             for call in calls:
+                if next_tool_call_index >= MAX_TOOL_CALLS_PER_TURN:
+                    calls_over_cap = True
+                    return
                 call.index = next_tool_call_index
                 next_tool_call_index += 1
                 call_id = getattr(call, "id", "")
@@ -962,6 +970,11 @@ class AntigravityStream(Iterator[Any]):
                                                                             arguments=salvaged[1]))
                             for call_delta in identify_calls([call]):
                                 yield self._make_chunk(tool_calls=[call_delta])
+                            if calls_over_cap:
+                                self._cut_bad_turn(f"more than {MAX_TOOL_CALLS_PER_TURN} tool calls in one turn")
+                                neutralized_tool_step = True
+                                stop_reason = "too many calls"
+                                break
                     elif step.get("step_type") == "tool":
                         tool_name = str(step.get("tool_name") or "")
                         if self._is_permitted_native_media_step(
@@ -1054,6 +1067,11 @@ class AntigravityStream(Iterator[Any]):
                                             has_tool_calls = True
                                             for call_delta in identify_calls(parsed_calls):
                                                 yield self._make_chunk(tool_calls=[call_delta])
+                                            if calls_over_cap:
+                                                runaway_why = f"more than {MAX_TOOL_CALLS_PER_TURN} tool calls in one turn"
+                                                runaway_cut = True
+                                                text_buffer = ""
+                                                break
                                         if extra_text and not has_tool_calls:
                                             has_content = True
                                             yield self._make_chunk(content=extra_text)
@@ -1120,8 +1138,8 @@ class AntigravityStream(Iterator[Any]):
                                             text_buffer = ""
 
                         if runaway_cut:
-                            why = (runaway_verdict(after_calls_text) if after_calls_text is not None
-                                   else "invented tool results in the answer")
+                            why = runaway_why or (runaway_verdict(after_calls_text) if after_calls_text is not None
+                                                  else "invented tool results in the answer")
                             if why is None:
                                 why = f"{blank_after_calls} blank characters after the tool calls"
                             logger.warning(
