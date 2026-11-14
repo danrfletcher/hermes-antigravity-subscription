@@ -685,15 +685,29 @@ class AntigravityPluginTests(unittest.TestCase):
         self.assertEqual(client._resolve_model_and_effort("gemini-3.8-flash-high", "low"), ("gemini-3.8-flash-low", "low"))
 
         # Gemini 4 ids that name their effort keep it over reasoning_effort (per-role picks).
-        g4 = {"gemini-4-argon": ("low", "medium", "high"), "gemini-4-hydrogen": ("low", "medium", "high"),
-              "gemini-4-hydrogen-xhigh": ()}
+        import models
+        g4 = models.parse_catalog(
+            "gemini-4-argon-low\ngemini-4-argon-medium\ngemini-4-argon-high\n"
+            "gemini-4-hydrogen-low\ngemini-4-hydrogen-medium\ngemini-4-hydrogen-high\n"
+            "gemini-4-hydrogen-xhigh\n")
+        self.assertEqual(g4["gemini-4-hydrogen"], ("low", "medium", "high", "xhigh"))
         with patch("models._catalog_cache", (float("inf"), g4)):
             self.assertEqual(client._resolve_model_and_effort("gemini-4-argon-medium", "high"),
                              ("gemini-4-argon-medium", "medium"))
             self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen-xhigh", "low"),
-                             ("gemini-4-hydrogen-xhigh", None))
+                             ("gemini-4-hydrogen-xhigh", "xhigh"))
             self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen", "high"),
                              ("gemini-4-hydrogen-high", "high"))
+            # The Hermes picker's xhigh on bare Hydrogen runs xhigh, not high.
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen", "xhigh"),
+                             ("gemini-4-hydrogen-xhigh", "xhigh"))
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen", "max"),
+                             ("gemini-4-hydrogen-xhigh", "xhigh"))
+            # Argon has no xhigh: clamp to high.
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-argon", "xhigh"),
+                             ("gemini-4-argon-high", "high"))
+        self.assertEqual(client._resolve_model_and_effort("gemini-3.8-flash", "xhigh"),
+                         ("gemini-3.8-flash-high", "high"))
 
         # Claude Sonnet 4.6 and Opus 4.6 are selected by bare name, without --effort.
         self.assertEqual(client._resolve_model_and_effort("claude-sonnet-4-6", "low"), ("claude-sonnet-4-6", None))
@@ -750,6 +764,9 @@ class AntigravityPluginTests(unittest.TestCase):
         self.assertEqual(profile.supported_reasoning_efforts("claude-opus-4-6-thinking"), ())
         self.assertEqual(profile.supported_reasoning_efforts("claude-sonnet-5-5"), ())
         self.assertEqual(profile.supported_reasoning_efforts("gpt-oss-120b-medium"), ("medium",))
+        # Gemini 4 ids that name their effort run at it: no effort choice offered.
+        self.assertEqual(profile.supported_reasoning_efforts("gemini-4-hydrogen-xhigh"), ())
+        self.assertEqual(profile.supported_reasoning_efforts("gemini-4-argon-high"), ())
         # Aliases resolve to the model they stand for in the catalog.
         self.assertEqual(profile.supported_reasoning_efforts("pro"), ("low", "high"))
         catalog_5_5 = {

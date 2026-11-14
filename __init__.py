@@ -14,6 +14,7 @@ from providers.base import ProviderProfile
 try:
     from .models import (
         _FALLBACK_MODELS,
+        _EFFORT_PINNED_PREFIXES,
         _MODEL_ALIASES,
         _cached_catalog,
         _heuristic_efforts,
@@ -27,6 +28,7 @@ except ImportError:
     # the absolute name is the same module.
     from models import (
         _FALLBACK_MODELS,
+        _EFFORT_PINNED_PREFIXES,
         _MODEL_ALIASES,
         _cached_catalog,
         _heuristic_efforts,
@@ -61,6 +63,10 @@ class AntigravitySubscriptionDirectSDKProfile(ProviderProfile):
         catalog = _cached_catalog()
         resolved_name = resolve_model_alias(name, catalog)
         base, suffix_effort = split_effort_suffix(resolved_name)
+        # A Gemini 4 id that names its effort (gemini-4-hydrogen-xhigh) always runs at
+        # that effort, so the picker offers no effort for it.
+        if suffix_effort and base.lower().startswith(_EFFORT_PINNED_PREFIXES):
+            return ()
         # No process spawn here: use the cached catalog and the built-in table.
         efforts = model_efforts(base, refresh=False)
         if efforts is None:
