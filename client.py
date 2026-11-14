@@ -1038,10 +1038,11 @@ class AntigravityClient:
         return True
 
     @staticmethod
-    def _instruction_header(messages, tools, tool_choice, native: bool = False) -> str:
+    def _instruction_header(messages, tools, tool_choice, native: bool = False, model: str | None = None) -> str:
         """Tool protocol, tool catalog and Hermes system prompt, as in the first full prompt."""
         system = [m for m in messages if isinstance(m, dict) and m.get("role") in ("system", "developer")]
-        header = _format_messages_as_prompt(system, tools=tools, tool_choice=tool_choice, native=native)
+        header = _format_messages_as_prompt(system, model=model, tools=tools, tool_choice=tool_choice,
+                                            native=native)
         tail = "Continue the conversation from the latest message."
         if header.endswith(tail):
             header = header[: -len(tail)].rstrip()
@@ -1227,7 +1228,7 @@ class AntigravityClient:
                 branch = "rewind"
             if tools_fp != known_tools:
                 # New tools / edited system prompt, or agy compacted its history: restate them.
-                prompt = self._instruction_header(messages, tools, tool_choice, native=native) + "\n\n" + prompt
+                prompt = self._instruction_header(messages, tools, tool_choice, native=native, model=model) + "\n\n" + prompt
         with self._lock:
             self._worker_tools_fp = tools_fp
             note, self._recovery_note = self._recovery_note, None

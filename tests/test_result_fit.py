@@ -106,5 +106,20 @@ class ObjectiveQuoteAfterCompactionTests(unittest.TestCase):
         self.assertEqual(P._objective_quote("fix the bug", "above"), "fix the bug")
 
 
+class GeminiEditEarlyRuleTests(unittest.TestCase):
+    TOOLS = [{"type": "function", "function": {"name": n, "parameters": {}}} for n in ("read_file", "patch")]
+    MSGS = [{"role": "system", "content": "sys"}, {"role": "user", "content": "go"}]
+
+    def test_gemini_with_edit_tools_gets_the_rule(self):
+        out = P._format_messages_as_prompt(self.MSGS, model="gemini-4-hydrogen-high", tools=self.TOOLS, native=True)
+        self.assertIn("make your first code edit early", out)
+
+    def test_other_models_and_toolless_turns_do_not(self):
+        for model, tools in (("claude-sonnet-4-6", self.TOOLS), ("gemini-3.8-flash-high", None),
+                             ("gemini-3.8-flash-high", self.TOOLS[:1])):
+            out = P._format_messages_as_prompt(self.MSGS, model=model, tools=tools, native=True)
+            self.assertNotIn("make your first code edit early", out)
+
+
 if __name__ == "__main__":
     unittest.main()

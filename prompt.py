@@ -587,6 +587,26 @@ def _render_tool_call_text(tc: dict[str, Any], native: bool) -> str:
     return f"<tool_call>{json.dumps(call_obj, ensure_ascii=False)}</tool_call>"
 
 
+# Gemini on agy explores a large codebase for 20+ minutes without editing (a 20-min PR-2 coder replay
+# with whole results: 1 edit; with this rule: first edit at 4.7 min, 21 edits, selftests pass).
+# Only for Gemini, only when it has editing tools.
+_GEMINI_EDIT_EARLY = (
+    "- When the task is to change code, make your first code edit early: once you have read the spec "
+    "and the functions you will change (normally within your first 30 tool calls), write a short plan "
+    "as text and start patching. Do not run whole test suites before your first edit; after a change, "
+    "run only the tests for the file you changed. Tests, fixtures and stubs the change does not need "
+    "can wait until after the first edit. Commit each finished piece if the task asks for commits."
+)
+_EDIT_TOOLS = frozenset({"patch", "write_file"})
+
+
+def _wants_edit_early_rule(model: str | None, tools: list[dict[str, Any]] | None) -> bool:
+    if not (model or "").lower().startswith("gemini"):
+        return False
+    names = {str((t.get("function") or {}).get("name") or "") for t in tools or [] if isinstance(t, dict)}
+    return bool(names & _EDIT_TOOLS)
+
+
 # agy attaches media pixels through its own native read step: the model must
 # call read_file/view_file on the referenced path, and the CLI then inlines the
 # file as a media block. The blanket "native tools are disabled" preamble would
@@ -845,6 +865,8 @@ def _format_messages_as_prompt(
     if native:
         # The tools are declared to the model natively (mcp_bridge.py): no catalog, no text format.
         sections: list[str] = [*_NATIVE_PROMPT_PREAMBLE]
+        if _wants_edit_early_rule(model, tools):
+            sections.insert(len(sections) - 2, _GEMINI_EDIT_EARLY)
     else:
         try:
             from agent.acp_openai_bridge import render_tool_bridge_sections
