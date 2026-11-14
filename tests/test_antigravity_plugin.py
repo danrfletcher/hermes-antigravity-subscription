@@ -684,6 +684,17 @@ class AntigravityPluginTests(unittest.TestCase):
         # Suffix override: model had -high but effort was set to low
         self.assertEqual(client._resolve_model_and_effort("gemini-3.8-flash-high", "low"), ("gemini-3.8-flash-low", "low"))
 
+        # Gemini 4 ids that name their effort keep it over reasoning_effort (per-role picks).
+        g4 = {"gemini-4-argon": ("low", "medium", "high"), "gemini-4-hydrogen": ("low", "medium", "high"),
+              "gemini-4-hydrogen-xhigh": ()}
+        with patch("models._catalog_cache", (float("inf"), g4)):
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-argon-medium", "high"),
+                             ("gemini-4-argon-medium", "medium"))
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen-xhigh", "low"),
+                             ("gemini-4-hydrogen-xhigh", None))
+            self.assertEqual(client._resolve_model_and_effort("gemini-4-hydrogen", "high"),
+                             ("gemini-4-hydrogen-high", "high"))
+
         # Claude Sonnet 4.6 and Opus 4.6 are selected by bare name, without --effort.
         self.assertEqual(client._resolve_model_and_effort("claude-sonnet-4-6", "low"), ("claude-sonnet-4-6", None))
         self.assertEqual(client._resolve_model_and_effort("claude-sonnet-4-6", "medium"), ("claude-sonnet-4-6", None))

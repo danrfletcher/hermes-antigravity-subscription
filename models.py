@@ -243,6 +243,10 @@ def resolve_model_alias(
     return _MODEL_ALIASES.get(lower_m, m)
 
 
+# Model families whose effort-suffixed ids keep their own effort over reasoning_effort.
+_EFFORT_PINNED_PREFIXES = ("gemini-4-",)
+
+
 def resolve_model_and_effort(
     model: str | None,
     reasoning_effort: str | None = None,
@@ -266,8 +270,14 @@ def resolve_model_and_effort(
     if not supported:
         return base_model, None
 
-    # Resolve effort: explicit argument > model suffix > config setting > default
+    # Resolve effort: explicit argument > model suffix > config setting > default.
+    # Exception: a Gemini 4 id that names its effort (gemini-4-argon-medium) is a complete
+    # agy model id and keeps it, so a caller can pick the effort per model (e.g. per build
+    # role) whatever the profile's reasoning_effort says. (-xhigh has no split suffix and
+    # already passes through by bare name above.)
     effort = _normalize_effort(reasoning_effort)
+    if suffix_effort and base_model.lower().startswith(_EFFORT_PINNED_PREFIXES):
+        effort = suffix_effort
     if not effort and suffix_effort:
         effort = suffix_effort
     if not effort:
