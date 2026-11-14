@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import logging
 import os
 import re
@@ -74,10 +75,31 @@ MCP_CALL_TIMEOUT_SECONDS = 3600
 _MCP_CONFIG_LOCK = threading.Lock()
 
 
+# agy names a server's tool mcp_<server>_<tool> and accepts at most 64 characters, from [A-Za-z0-9_-].
+_AGY_TOOL_NAME_MAX = 64
+_BRIDGE_PREFIX = "mcp_hermes_"
+_SAFE_TOOL_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def _bridge_tool_name(name: str, taken: set[str]) -> str:
+    """The name agy sees for a Hermes tool: itself, or a short alias when it is too long or unsafe."""
+    room = _AGY_TOOL_NAME_MAX - len(_BRIDGE_PREFIX)
+    if len(name) <= room and _SAFE_TOOL_NAME.match(name) and name not in taken:
+        return name
+    digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:8]
+    stem = re.sub(r"[^A-Za-z0-9_-]+", "_", name)[: room - len(digest) - 1].rstrip("_-")
+    return f"{stem}_{digest}"
+
+
 def bridge_tool_specs(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
-    """Hermes (OpenAI function) tools as MCP tool specs: name, description, inputSchema."""
+    """Hermes (OpenAI function) tools as MCP tool specs: name, description, inputSchema.
+
+    ``name`` is what agy sees (an alias when the Hermes name would break agy's 64-character
+    ``mcp_hermes_<name>``); ``hermes_name`` is what Hermes runs.
+    """
     specs: list[dict[str, Any]] = []
     seen: set[str] = set()
+    taken: set[str] = set()
     for tool in tools or []:
         fn = tool.get("function") if isinstance(tool, dict) else None
         if not isinstance(fn, dict):
@@ -89,7 +111,12 @@ def bridge_tool_specs(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]
         params = fn.get("parameters")
         if not isinstance(params, dict) or params.get("type") != "object":
             params = {"type": "object", "properties": {}}
-        specs.append({"name": name, "description": str(fn.get("description") or ""),
+        alias = _bridge_tool_name(name, taken)
+        taken.add(alias)
+        description = str(fn.get("description") or "")
+        if alias != name:
+            description = f"(Hermes tool {name}) {description}".strip()
+        specs.append({"name": alias, "hermes_name": name, "description": description,
                       "inputSchema": params})
     return specs
 

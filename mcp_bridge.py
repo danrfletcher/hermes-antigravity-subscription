@@ -100,7 +100,8 @@ def main() -> int:
     if bridge_dir and not os.path.isdir(bridge_dir):
         bridge_dir = None
     tools = _load_tools(bridge_dir)
-    names = {t["name"] for t in tools}
+    # agy's name -> Hermes' name (an alias when Hermes' name is too long for agy).
+    names = {t["name"]: str(t.get("hermes_name") or t["name"]) for t in tools}
     _log(bridge_dir, f"start pid={os.getpid()} ppid={os.getppid()} tools={len(tools)}")
     seq = 0
     for line in sys.stdin:
@@ -142,7 +143,7 @@ def main() -> int:
                 args = arguments if isinstance(arguments, dict) else {}
 
                 def answer(mid=mid, seq=seq, name=name, args=args) -> None:
-                    _send({"jsonrpc": "2.0", "id": mid, "result": _park(bridge_dir, seq, name, args)})
+                    _send({"jsonrpc": "2.0", "id": mid, "result": _park(bridge_dir, seq, names[name], args)})
 
                 threading.Thread(target=answer, daemon=True).start()
         elif method == "ping":

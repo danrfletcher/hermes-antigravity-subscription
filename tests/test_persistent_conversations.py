@@ -5,6 +5,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -728,3 +729,48 @@ class NativeGateAndPromptTests(unittest.TestCase):
             self.assertTrue(cfg["args"][0].endswith("mcp_bridge.py"))
         finally:
             shutil.rmtree(home, ignore_errors=True)
+
+
+class BridgeNameTests(unittest.TestCase):
+    def test_long_and_unsafe_names_get_short_unique_aliases(self):
+        import process as PR
+        long = "mcp_on_demand_build_pipeline_steps_review_remediation_approved"
+        tools = [{"type": "function", "function": {"name": n, "parameters": {"type": "object"}}}
+                 for n in ("terminal", long, long + "_x", "odd.name")]
+        specs = PR.bridge_tool_specs(tools)
+        self.assertEqual(specs[0]["name"], "terminal")
+        aliases = [s["name"] for s in specs]
+        self.assertEqual(len(set(aliases)), 4)
+        for spec in specs:
+            self.assertLessEqual(len("mcp_hermes_" + spec["name"]), 64)
+            self.assertRegex(spec["name"], r"^[A-Za-z0-9_-]+$")
+        self.assertEqual([s["hermes_name"] for s in specs], ["terminal", long, long + "_x", "odd.name"])
+        self.assertIn(long, specs[1]["description"])
+
+    def test_bridge_parks_the_hermes_name_for_an_alias(self):
+        import subprocess
+        import process as PR
+        long = "mcp_on_demand_build_pipeline_steps_review_remediation_approved"
+        d = Path(tempfile.mkdtemp())
+        try:
+            spec = PR.bridge_tool_specs([{"type": "function", "function": {"name": long, "parameters": {"type": "object"}}}])
+            (d / "tools.json").write_text(json.dumps(spec))
+            p = subprocess.Popen([sys.executable, str(PR.MCP_BRIDGE_SCRIPT)], stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, text=True, env={**os.environ, "HERMES_AGY_BRIDGE_DIR": str(d)})
+            p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                                      "params": {"name": spec[0]["name"], "arguments": {"a": 1}}}) + "\n")
+            p.stdin.flush()
+            for _ in range(100):
+                if (d / "calls" / "000001.json").exists():
+                    break
+                time.sleep(0.05)
+            call = json.loads((d / "calls" / "000001.json").read_text())
+            self.assertEqual(call["name"], long)
+            (d / "results").mkdir(exist_ok=True)
+            (d / "results" / "000001.json").write_text(json.dumps({"text": "done", "is_error": False}))
+            reply = json.loads(p.stdout.readline())
+            self.assertEqual(reply["result"]["content"][0]["text"], "done")
+            p.stdin.close()
+            p.wait(5)
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
