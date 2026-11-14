@@ -455,27 +455,19 @@ def test_stream_cut_inside_closing_tag_after_a_complete_call_fails():
 
 
 # ---------------------------------------------------------------------------
-# Native tool neutralization keeps its pinned empty-stop behavior
+# A native tool step no longer kills agy: the hook gates it (test_runaway_guard.py)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("partial", ['<tool_call>{"id":"x",', "<tool_cal"])
-def test_native_tool_step_neutralization_with_partial_block_does_not_fail(partial):
+def test_native_tool_that_ran_mid_block_fails_the_turn(partial):
     events = [
         {"event": "step_update", "step_update": {"text_delta": partial}},
-        {
-            "event": "step_update",
-            "step_update": {"step_type": "tool", "tool_name": "run_command"},
-        },
+        {"event": "step_update", "step_update": {"step_type": "tool", "tool_name": "run_command", "state": "DONE"}},
     ]
     stream, _proc_mock, client = _stream(events)
-
-    chunks = list(stream)
-
-    calls, contents, finishes = _consumed(chunks)
-    assert calls == []
-    assert contents == []
-    assert finishes == ["stop"]
+    with pytest.raises(RuntimeError, match="turn cut"):
+        list(stream)
     client._terminate_process.assert_called()
 
 

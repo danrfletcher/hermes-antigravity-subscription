@@ -1053,6 +1053,65 @@ def _has_unfinished_tool_call_frame(text: str) -> bool:
         cursor = close + len(_TOOL_CALL_CLOSE)
 
 
+def _tool_call_run_end(text: str) -> int:
+    """End index of the first contiguous run of ``<tool_call>`` frames, or -1.
+
+    Returns the index just past the last frame of the first run when real
+    text (not whitespace, not another frame) follows it: everything from
+    there on was written after the model's tool calls and before Hermes ran
+    them, so it cannot be valid (the runaway shape: invented
+    ``Tool Result (call_N):`` blocks and calls premised on them). Returns -1
+    when there is no frame, the run is unfinished, or nothing but
+    whitespace follows it. Prose BEFORE the first frame is never affected.
+    """
+    start = text.find(_TOOL_CALL_OPEN)
+    if start == -1:
+        return -1
+    cursor = start
+    while True:
+        close = _find_tool_call_close(text, cursor + len(_TOOL_CALL_OPEN))
+        if close == -1:
+            return -1
+        end = close + len(_TOOL_CALL_CLOSE)
+        rest = text[end:]
+        nxt = end + (len(rest) - len(rest.lstrip()))
+        if nxt >= len(text):
+            return -1
+        if text.startswith(_TOOL_CALL_OPEN, nxt):
+            cursor = nxt
+            continue
+        return end
+
+
+# Lines only a runaway writes: the model continuing the plugin's flat history format past its
+# own turn (an invented result for a call Hermes has not run, or the next speaker's turn).
+_RUNAWAY_LINE_RE = re.compile(r"(?m)^[ \t>*_#-]*(?:Tool Result \(|Assistant:|User:)")
+_INVENTED_RESULT_RE = re.compile(r"(?m)^[ \t>*_#-]*Tool Result \(")
+# Prose after the calls that is longer than this is a runaway even without a marker line.
+RUNAWAY_TRAILING_MAX_CHARS = 8000
+
+
+def runaway_verdict(text_after_calls: str) -> str | None:
+    """Why text written AFTER the turn's tool calls makes the turn bad, or None.
+
+    Harmless trailing prose ("I'll wait for the results.") keeps the turn; an invented
+    ``Tool Result (call_N):`` block, a ``User:``/``Assistant:`` turn, another tool call
+    premised on what came before, or an endless tail does not.
+    """
+    if _RUNAWAY_LINE_RE.search(text_after_calls):
+        return "invented tool results or turns after the tool calls"
+    if _TOOL_CALL_OPEN in text_after_calls:
+        return "tool call written after text that followed the tool calls"
+    if len(text_after_calls) > RUNAWAY_TRAILING_MAX_CHARS:
+        return "long text after the tool calls"
+    return None
+
+
+def invented_result_marker(text: str) -> bool:
+    """True when answer text (before any tool call) carries an invented tool result."""
+    return bool(_INVENTED_RESULT_RE.search(text))
+
+
 def _tool_call_from_object(obj: Any, ordinal: int) -> Any | None:
     """Build one tool-call delta object from a decoded JSON value.
 

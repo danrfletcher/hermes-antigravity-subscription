@@ -40,6 +40,7 @@ try:
         _kill_process_tree,
         _own_process_group,
         build_child_env,
+        install_tool_gate,
         is_authenticated,
         read_media_rules,
         reap_orphaned_plugin_workers,
@@ -80,6 +81,7 @@ except ImportError:
         _kill_process_tree,
         _own_process_group,
         build_child_env,
+        install_tool_gate,
         is_authenticated,
         read_media_rules,
         reap_orphaned_plugin_workers,
@@ -112,6 +114,12 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 300.0
+# Bad turns of one request (same messages) that are rewound and retried before giving up.
+MAX_RECOVERIES_PER_REQUEST = 3
+
+
+class AntigravityRecoveryExhausted(RuntimeError):
+    """The same request went bad more than MAX_RECOVERIES_PER_REQUEST times in a row."""
 
 # agy prints these when its token source cannot be built — the signature of
 # OAuth contention with ANOTHER agy session on the same Google account (each
@@ -353,6 +361,20 @@ def _force_rmtree(path: str) -> None:
     shutil.rmtree(path, ignore_errors=True)
 
 
+def _migrate_store_home(root: Path) -> None:
+    """Move a store HOME from inside the workspace (older layout) to beside it.
+
+    Keeps every stored conversation resumable after the cwd move. Never overwrites.
+    """
+    old, new = root / "workspace" / "home", root / "home"
+    if old.is_dir() and not new.exists():
+        try:
+            os.replace(old, new)
+            logger.info("Antigravity: moved isolated HOME out of agy's cwd (%s -> %s)", old, new)
+        except OSError as exc:
+            logger.warning("Antigravity: could not move isolated HOME out of the workspace: %s", exc)
+
+
 class AntigravityClient:
     """OpenAI-compatible client facade driving Antigravity CLI.
 
@@ -400,23 +422,44 @@ class AntigravityClient:
         # Hermes session, resumable after restarts. Needs agy's conversation records to outlive
         # this client, so the agy HOME lives in plugin data instead of a per-client temp dir.
         self._store = None
+        # agy runs reads relative to its cwd, so the isolated HOME (which links the OAuth token)
+        # sits BESIDE agy's cwd, never inside it: <root>/home and <root>/workspace.
+        home_root = None
         if not cwd and _session_store.persistence_enabled():
             try:
                 self._store = _session_store.SessionStore()
-                workspace = self._store.base / "workspace"
+                home_root = self._store.base
+                workspace = home_root / "workspace"
                 workspace.mkdir(parents=True, exist_ok=True)
+                _migrate_store_home(home_root)
                 cwd = str(workspace)
             except Exception as exc:  # never block the provider on plugin-data trouble
                 logger.warning("Antigravity: persistent conversations disabled (%s)", exc)
                 self._store = None
+                home_root = None
+                cwd = None
         if cwd:
             self._cwd = cwd
         else:
             self._temp_dir = tempfile.TemporaryDirectory(prefix="hermes_agy_")
-            self._cwd = self._temp_dir.name
+            home_root = Path(self._temp_dir.name)
+            workspace = home_root / "workspace"
+            workspace.mkdir(parents=True, exist_ok=True)
+            self._cwd = str(workspace)
 
-        # Isolate agy state and session index from the user's real ~/.gemini/antigravity-cli
-        self._isolated_home, self._isolated_gemini_dir = setup_isolated_home(self._cwd)
+        # Isolate agy state and session index from the user's real ~/.gemini/antigravity-cli.
+        # A caller-supplied cwd keeps its HOME inside it (the caller owns that layout).
+        self._isolated_home, self._isolated_gemini_dir = setup_isolated_home(
+            home_root if home_root is not None else self._cwd)
+        # Gate agy's own tools before any agy process starts in this HOME.
+        try:
+            install_tool_gate(self._isolated_home, self._isolated_gemini_dir)
+        except Exception:
+            logger.warning("Antigravity: could not install the native-tool gate", exc_info=True)
+        # Bad-turn recovery (see _mark_bad_turn / _recover_bad_turn).
+        self._pending_recovery: dict[str, Any] | None = None
+        self._recovery_key: tuple[int, str] | None = None
+        self._recovery_count = 0
 
         # A Hermes process that died without close() leaves its agy worker
         # orphaned, holding a conversation open on the shared account (the
@@ -701,6 +744,7 @@ class AntigravityClient:
     def _update_worker_history(self, messages: list[dict[str, Any]] | None) -> None:
         hashes = _session_store.message_hashes(list(messages or []))
         with self._lock:
+            self._recovery_key, self._recovery_count = None, 0
             msg_list = list(messages or [])
             self._worker_history = msg_list
             self._conversation_history = msg_list
@@ -721,6 +765,94 @@ class AntigravityClient:
                                 hashes=hashes, tools=tools_fp)
             except Exception as exc:
                 logger.warning("Antigravity: could not record conversation for %s: %s", session_id, exc)
+
+    # ── Bad-turn recovery ─────────────────────────────────────────────────────────────────
+
+    def _mark_bad_turn(self, reason: str, messages: list[dict[str, Any]] | None,
+                       conversation_id: str | None = None) -> None:
+        """A worker turn went bad (runaway, native tool, silence, failure); called by the stream.
+
+        Records what the conversation held BEFORE the turn (the in-memory state is only ever
+        advanced by a successful turn), so the next request can rewind the turn out of agy's
+        conversation and resume from there. The store entry is flagged too, so a resume after a
+        gateway restart never continues on top of the bad turn.
+        """
+        hashes = _session_store.message_hashes(list(messages or []))
+        key = (len(hashes), hashes[-1] if hashes else "")
+        with self._lock:
+            if key == self._recovery_key:
+                self._recovery_count += 1
+            else:
+                self._recovery_key, self._recovery_count = key, 1
+            if self._pending_recovery is None:
+                self._pending_recovery = {
+                    "conversation_id": self._worker_conversation_id or conversation_id or None,
+                    "good_hashes": list(self._worker_hashes),
+                    "tools_fp": self._worker_tools_fp,
+                    "reason": reason,
+                }
+            session_id = self._session_id if self._session_claim is not None else None
+        if self._store is not None and session_id:
+            try:
+                self._store.mark_bad(session_id, reason)
+            except Exception as exc:
+                logger.warning("Antigravity: could not flag bad turn for %s: %s", session_id, exc)
+
+    def _rewind_bad_turn(self, pending: dict[str, Any]) -> bool:
+        """Delete the bad turn from agy's conversation so it resumes at the last good state.
+
+        False means the conversation could not be rewound safely; the caller falls back to a
+        fresh conversation with a fitted resend.
+        """
+        return False
+
+    def _recover_bad_turn(self, session_id: str | None, persistent: bool) -> None:
+        """Before any send: clear up a turn the previous request left bad (GP4 / GP6 / GP7)."""
+        with self._lock:
+            pending = self._pending_recovery
+            count = self._recovery_count
+        stored = None
+        if pending is None and persistent:
+            entry = self._store.get(session_id)
+            if entry and entry.get("bad"):
+                stored = entry
+                pending = {"conversation_id": entry["conversation_id"],
+                           "good_hashes": list(entry.get("hashes") or []),
+                           "tools_fp": entry.get("tools"), "reason": entry["bad"]}
+        if pending is None:
+            return
+        if count > MAX_RECOVERIES_PER_REQUEST:
+            raise AntigravityRecoveryExhausted(
+                f"Antigravity: this request went bad {count} times in a row "
+                f"(last: {pending.get('reason')}); giving up after {MAX_RECOVERIES_PER_REQUEST} recoveries.")
+        # agy must not hold the conversation while it is edited.
+        self._terminate_worker(keep_conversation=True)
+        conversation_id = pending.get("conversation_id")
+        rewound = bool(conversation_id and pending.get("good_hashes")
+                       and self._conversation_exists(conversation_id)
+                       and self._rewind_bad_turn(pending))
+        logger.warning("Antigravity recovery (%s): %s", pending.get("reason"),
+                       "rewound the bad turn" if rewound else "fresh conversation with a fitted resend")
+        with self._lock:
+            self._pending_recovery = None
+            if rewound:
+                self._worker_conversation_id = conversation_id
+                self._worker_hashes = list(pending["good_hashes"])
+                self._conversation_history = []
+                self._worker_tools_fp = pending.get("tools_fp")
+        if not rewound:
+            self._terminate_worker()  # drops the in-memory conversation
+        if persistent:
+            try:
+                if rewound:
+                    entry = stored or self._store.get(session_id) or {}
+                    self._store.put(session_id, conversation_id=conversation_id,
+                                    model=entry.get("model"), effort=entry.get("effort"),
+                                    hashes=pending["good_hashes"], tools=pending.get("tools_fp"))
+                else:
+                    self._store.forget(session_id)
+            except Exception as exc:
+                logger.warning("Antigravity: could not update the store after recovery: %s", exc)
 
     # ── Persistent conversations ───────────────────────────────────────────────────────────
 
@@ -814,6 +946,7 @@ class AntigravityClient:
         hashes = _session_store.message_hashes(messages)
         tools_fp = _session_store.instructions_fingerprint(messages, tools, tool_choice)
         persistent = self._bind_session(session_id)
+        self._recover_bad_turn(session_id, persistent)
         with self._lock:
             live = self._worker_proc is not None and self._worker_proc.poll() is None
             # A worker stopped with keep_conversation (idle reap, media respawn) leaves what its

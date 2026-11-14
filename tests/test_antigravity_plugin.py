@@ -1083,31 +1083,6 @@ class AntigravityPluginTests(unittest.TestCase):
         self.assertIn("--disable-slash-commands", profile.process_args)
         self.assertIn("--output-format", profile.process_args)
 
-    def test_native_tool_step_neutralization_in_stream(self):
-        # TemporaryDirectory (not /tmp): on Windows "/tmp" resolves to a
-        # drive-rooted \tmp with no guaranteed write access, and an
-        # explicit cwd is never cleaned by close() — addCleanup removes it.
-        tmp_dir = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp_dir.cleanup)
-        client = AntigravityClient(cwd=tmp_dir.name)
-        fake_events = [
-            json.dumps({"event": "init", "conversation_id": "test-sec-conv"}),
-            json.dumps({"event": "step_update", "step_update": {"step_type": "tool", "tool_name": "run_command"}}),
-        ]
-        mock_proc = MagicMock()
-        mock_proc.poll.return_value = None
-        mock_proc.stdout.readline.side_effect = [f"{line}\n" for line in fake_events] + [""]
-        mock_proc.stdin = MagicMock()
-
-        with patch("subprocess.Popen", return_value=mock_proc), patch.object(client, "_terminate_process") as mock_term:
-            stream = client.chat.completions.create(
-                model="gemini-3.8-flash",
-                messages=[{"role": "user", "content": "hi"}],
-                stream=True,
-            )
-            chunks = list(stream)
-            mock_term.assert_called_once_with(mock_proc)
-
     def test_temp_directory_isolation_and_cleanup(self):
         client = AntigravityClient()
         temp_dir = client._cwd

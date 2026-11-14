@@ -6,6 +6,7 @@ resumed with --conversation <id>), conversation records under $HOME/.gemini/anti
 conversations/<id>.db, cumulative usage on result events, per-call usage on agent_response steps.
 Every prompt it receives is appended to $FAKE_AGY_LOG as {"argv", "conversation_id", "prompt"}.
 Replies "ACK <n>" where n counts prompts in the conversation (persisted across resumes).
+FAKE_AGY_RUNAWAY="2,3" makes the 2nd and 3rd prompt of a conversation run away (call + invented result).
 """
 import json
 import os
@@ -45,6 +46,10 @@ for line in sys.stdin:
     cached = state["tokens"] - new
     cumulative_in += new
     reply = f"ACK {len(state['prompts'])}"
+    if str(len(state["prompts"])) in os.environ.get("FAKE_AGY_RUNAWAY", "").split(","):
+        # A runaway turn: a tool call, then an invented result for it.
+        call = {"id": "call_1", "type": "function", "function": {"name": "read_file", "arguments": "{}"}}
+        reply = "<tool_call>" + json.dumps(call) + "</tool_call>\nTool Result (call_1):\nmade up\n"
     if os.environ.get("FAKE_AGY_CHECKPOINT") == str(len(state["prompts"])):
         emit({"event": "step_update", "step_update": {"step_type": "checkpoint", "state": "DONE"}})
     emit({"event": "step_update", "step_update": {"conversation_id": conv, "step_type": "agent_response",

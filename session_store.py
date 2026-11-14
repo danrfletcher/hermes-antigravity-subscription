@@ -230,6 +230,18 @@ class SessionStore:
             }
             self._write(data)
 
+    def mark_bad(self, session_id: str, reason: str) -> None:
+        """The conversation's latest turn went bad: it must be rewound before the next resume.
+
+        Survives a gateway restart, so a resume never continues on top of a bad turn.
+        """
+        with self._file_lock():
+            data = self._read()
+            entry = data.get(session_id)
+            if isinstance(entry, dict):
+                entry["bad"] = str(reason)[:300]
+                self._write(data)
+
     def forget(self, session_id: str) -> None:
         with self._file_lock():
             data = self._read()

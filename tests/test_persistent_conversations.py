@@ -142,6 +142,95 @@ class PersistentClientTests(unittest.TestCase):
         self.assertIn("what was it?", second["prompt"])
         self.assertEqual(a2, "ACK 2")  # agy's own record carried both prompts
 
+    TOOLS = [{"type": "function", "function": {"name": "read_file", "parameters": {"type": "object"}}}]
+
+    def test_bad_turn_is_never_resumed(self):
+        # Turn 2 runs away. Its call is delivered, but agy's conversation holds the invented
+        # result, so the next request must not continue that conversation as if it were clean.
+        os.environ["FAKE_AGY_RUNAWAY"] = "2"
+        cl = self.client()
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "first"}]
+            a1, _ = self.ask(cl, m, tools=self.TOOLS)
+            m += [{"role": "assistant", "content": a1}, {"role": "user", "content": "second"}]
+            _, res = self.ask(cl, m, tools=self.TOOLS)
+            msg = res.choices[0].message
+            self.assertEqual([c.id for c in msg.tool_calls], ["call_1"])
+            self.assertIsNotNone(cl._pending_recovery)
+            self.assertTrue(cl._store.get("S1")["bad"].startswith("runaway"))
+            m += [{"role": "assistant", "content": None, "tool_calls": [
+                      {"id": "call_1", "type": "function", "function": {"name": "read_file", "arguments": "{}"}}]},
+                  {"role": "tool", "tool_call_id": "call_1", "content": "REAL RESULT"}]
+            self.ask(cl, m, tools=self.TOOLS)
+        finally:
+            cl.close()
+            os.environ.pop("FAKE_AGY_RUNAWAY", None)
+        calls = self.calls()
+        self.assertEqual(len(calls), 3)
+        # Rewind is not available yet -> fallback: a fresh conversation with the whole history.
+        self.assertNotEqual(calls[2]["conversation_id"], calls[1]["conversation_id"])
+        self.assertIn("first", calls[2]["prompt"])
+        self.assertIn("REAL RESULT", calls[2]["prompt"])
+        self.assertIsNone(cl._pending_recovery)
+
+    def test_bad_flag_survives_a_restart(self):
+        os.environ["FAKE_AGY_RUNAWAY"] = "2"
+        try:
+            cl = self.client()
+            m = [self.SYSTEM, {"role": "user", "content": "first"}]
+            a1, _ = self.ask(cl, m, tools=self.TOOLS)
+            m += [{"role": "assistant", "content": a1}, {"role": "user", "content": "second"}]
+            self.ask(cl, m, tools=self.TOOLS)
+            cl.close()
+            cl = self.client()  # gateway restart: the in-memory pending recovery is gone
+            m += [{"role": "assistant", "content": None, "tool_calls": [
+                      {"id": "call_1", "type": "function", "function": {"name": "read_file", "arguments": "{}"}}]},
+                  {"role": "tool", "tool_call_id": "call_1", "content": "REAL RESULT"}]
+            self.ask(cl, m, tools=self.TOOLS)
+            cl.close()
+        finally:
+            os.environ.pop("FAKE_AGY_RUNAWAY", None)
+        calls = self.calls()
+        self.assertNotEqual(calls[2]["conversation_id"], calls[1]["conversation_id"])
+        self.assertIn("first", calls[2]["prompt"])
+
+    def test_recoveries_are_capped_per_request(self):
+        cl = self.client()
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "q"}]
+            for _ in range(self.C.MAX_RECOVERIES_PER_REQUEST + 1):
+                cl._mark_bad_turn("runaway: test", m)
+            with self.assertRaises(self.C.AntigravityRecoveryExhausted):
+                self.ask(cl, m)
+            self.assertFalse(cl._worker_lock.locked())
+        finally:
+            cl.close()
+
+    def test_isolated_home_sits_beside_agys_cwd(self):
+        cl = self.client()
+        try:
+            home, cwd = Path(cl._isolated_home), Path(cl._cwd)
+            self.assertNotIn(cwd, home.parents)
+            self.assertEqual(home.parent, cwd.parent)
+            hooks = json.loads((home / ".gemini" / "config" / "hooks.json").read_text())
+            self.assertIn("tool_gate.py", json.dumps(hooks))
+            settings = json.loads((Path(cl._isolated_gemini_dir) / "settings.json").read_text())
+            self.assertIn("command(*)", settings["permissions"]["deny"])
+            self.assertNotIn("read_file(*)", settings["permissions"]["deny"])
+        finally:
+            cl.close()
+
+    def test_old_layout_home_moves_out_of_the_workspace(self):
+        old = self.tmp / "data" / "workspace" / "home" / ".gemini" / "antigravity-cli" / "conversations"
+        old.mkdir(parents=True)
+        (old / "keep.db").write_text("x")
+        cl = self.client()
+        try:
+            self.assertTrue((Path(cl._isolated_gemini_dir) / "conversations" / "keep.db").exists())
+            self.assertFalse((self.tmp / "data" / "workspace" / "home").exists())
+        finally:
+            cl.close()
+
     def test_fresh_start_never_purges_other_sessions_conversations(self):
         # The store's agy HOME is shared by every Hermes session: upstream's purge of
         # conversations/*.db on a fresh start must not run there.

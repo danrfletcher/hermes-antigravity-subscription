@@ -9,8 +9,10 @@ import logging
 import os
 import re
 import subprocess
+import sys
 import threading
 import time
+import weakref
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import Any, Iterator, NamedTuple
@@ -19,23 +21,31 @@ try:
     from .process import _check_early_quota_error
     from .prompt import (
         _TOOL_CALL_CLOSE,
+        _TOOL_CALL_OPEN,
         _find_tool_call_close,
         _has_unfinished_tool_call_frame,
         _has_unparseable_tool_call_frame,
         _longest_tool_call_prefix_match,
         _parse_tool_block,
+        _tool_call_run_end,
+        invented_result_marker,
         media_reference_paths,
+        runaway_verdict,
     )
 except ImportError:
     from process import _check_early_quota_error
     from prompt import (
         _TOOL_CALL_CLOSE,
+        _TOOL_CALL_OPEN,
         _find_tool_call_close,
         _has_unfinished_tool_call_frame,
         _has_unparseable_tool_call_frame,
         _longest_tool_call_prefix_match,
         _parse_tool_block,
+        _tool_call_run_end,
+        invented_result_marker,
         media_reference_paths,
+        runaway_verdict,
     )
 
 logger = logging.getLogger(__name__)
@@ -92,6 +102,33 @@ def _path_is_native_media_target(path: str, referenced: set[str]) -> bool:
         real == root or real.startswith(root + os.sep)
         for root in _native_media_roots()
     )
+
+
+# A turn that keeps retrying agy's own tools after this many hook denials is cut and recovered:
+# denials come back in ~0.1 s with rc 0, so nothing else stops a model that keeps trying.
+MAX_HOOK_DENIALS_PER_TURN = 3
+SILENCE_ENV = "ANTIGRAVITY_SILENCE_SECONDS"
+DEFAULT_SILENCE_SECONDS = 90.0
+
+
+def silence_cutoff_seconds() -> float:
+    """Seconds without any agy stream event before a turn counts as hung (0 disables)."""
+    try:
+        value = float(os.environ.get(SILENCE_ENV, DEFAULT_SILENCE_SECONDS))
+    except ValueError:
+        return DEFAULT_SILENCE_SECONDS
+    return max(value, 0.0)
+
+
+def _tool_step_error(step: dict[str, Any]) -> str:
+    info = step.get("tool_info")
+    if isinstance(info, dict):
+        err = info.get("error")
+        if isinstance(err, dict):
+            return str(err.get("message") or err.get("type") or "")
+        if err:
+            return str(err)
+    return ""
 
 
 class _UsageDeltas(NamedTuple):
@@ -273,6 +310,11 @@ class AntigravityStream(Iterator[Any]):
         self._interrupted = False
         self._finished = False
         self._early_error: str | None = None
+        # Why this turn is bad (runaway text, a native tool that ran, too many hook denials,
+        # silence, a failed turn): set once, at the cut. A bad worker turn is never recorded
+        # and the client rewinds it out of the agy conversation on the next request.
+        self._bad_turn: str | None = None
+        self._last_event_at = time.monotonic()
         self._generator = self._stream_generator()
         # Private single-thread executor for the async path, created lazily on
         # the first __anext__ (sync consumers never create one, and a retired
@@ -482,6 +524,31 @@ class AntigravityStream(Iterator[Any]):
         # already-shut-down executor accepts shutdown() again.
         self._retire_executor()
 
+    def _cut_bad_turn(self, reason: str, *, stop: bool = True) -> None:
+        """Mark this turn bad (once) and, with ``stop``, stop agy now.
+
+        A worker turn is reported to the client first (``_mark_bad_turn``), which records what
+        the conversation held before this turn so the next request can rewind it; the worker is
+        then stopped keeping its conversation on disk. Called from the reader and the silence
+        watchdog thread.
+        """
+        if self._bad_turn:
+            return
+        self._bad_turn = reason
+        logger.warning("Antigravity bad turn (%s): %s", "worker" if self.is_worker else "oneshot", reason)
+        client = self.client
+        if self.is_worker:
+            mark = getattr(client, "_mark_bad_turn", None)
+            if callable(mark):
+                mark(reason, self.messages, self.conversation_id)
+            if stop:
+                if self.proc is getattr(client, "_worker_proc", None):
+                    client._terminate_worker(keep_conversation=True)
+                else:
+                    client._terminate_process(self.proc)
+        elif stop:
+            client._terminate_process(self.proc)
+
     def _collect_media_reference_paths(self) -> set[str]:
         """Paths this turn's messages reference as media (``[Image](/abs/path)``).
 
@@ -687,6 +754,7 @@ class AntigravityStream(Iterator[Any]):
                 yield call
 
         has_content = False
+        delivered_bad = False
         in_tool_call = False
         error_msg = ""
         status = ""
@@ -695,6 +763,15 @@ class AntigravityStream(Iterator[Any]):
         # agy attempted a native tool invocation (security neutralization)?
         saw_result = False
         neutralized_tool_step = False
+        # Runaway guard: text after the model's tool calls. Never delivered (Hermes runs the
+        # calls; anything written before it has is premised on nothing). Harmless prose is
+        # watched until the result event; an invented "Tool Result (call_N):" block, a
+        # User:/Assistant: turn, another call or an endless tail cuts the turn there: the calls
+        # already emitted go to Hermes, agy is stopped, and the turn is marked bad.
+        runaway_cut = False
+        after_calls_text: str | None = None
+        pre_call_text = ""
+        hook_denials = 0
         success = False
         start_time = time.monotonic()
         # File mtimes are wall-clock epoch seconds; durations and deadlines
@@ -733,6 +810,27 @@ class AntigravityStream(Iterator[Any]):
             )
             watchdog_thread.start()
 
+        silence_after = silence_cutoff_seconds()
+        silence_stop = threading.Event()
+        silence_thread: threading.Thread | None = None
+        self._last_event_at = time.monotonic()
+        if silence_after > 0:
+            # A weak reference only: a live thread holding the stream would keep an abandoned
+            # stream (and its generator's finally) from ever being collected.
+            def _silence_loop(stream_ref=weakref.ref(self), stop=silence_stop) -> None:
+                while not stop.wait(timeout=min(1.0, silence_after / 4)):
+                    stream = stream_ref()
+                    if stream is None:
+                        return
+                    quiet = time.monotonic() - stream._last_event_at
+                    if quiet >= silence_after:
+                        stream._cut_bad_turn(f"no output from agy for {quiet:.0f}s")
+                        return
+                    del stream
+
+            silence_thread = threading.Thread(target=_silence_loop, name="agy-silence-watchdog", daemon=True)
+            silence_thread.start()
+
         try:
             while time.monotonic() < deadline:
                 if self._early_error:
@@ -750,6 +848,7 @@ class AntigravityStream(Iterator[Any]):
                     continue
 
                 last_stdout_at = time.monotonic()
+                self._last_event_at = last_stdout_at
                 if self.is_worker:
                     # The idle countdown reads this to tell a busy worker from
                     # one whose turn died holding the worker lock.
@@ -797,22 +896,31 @@ class AntigravityStream(Iterator[Any]):
                                 "Antigravity native media attach allowed: %s", tool_name
                             )
                         else:
-                            logger.warning(
-                                "Antigravity attempted native tool invocation '%s'; neutralizing to prevent host execution.",
-                                step.get("tool_name"),
-                            )
-                            self.close()
-                            # Recorded so the post-loop positive-evidence check
-                            # does not treat this security abort as an empty
-                            # failed turn: the process is terminated right here
-                            # on purpose, and the empty completion assembled
-                            # afterwards is the pinned behavior (see
-                            # test_native_tool_step_neutralization_in_stream).
-                            # The stop cause is recorded too, so diagnostics do
-                            # not misreport this deliberate abort as a deadline.
-                            neutralized_tool_step = True
-                            stop_reason = "native tool step neutralized"
-                            break
+                            # The PreToolUse hook (tool_gate.py) and the deny rules gate every
+                            # native tool before it runs: an ACTIVE step is only the attempt,
+                            # an ERROR step the denial the model reads and corrects. Killing
+                            # agy on the attempt (the old neutralization) raced the denial and
+                            # itself killed workers ("rc 1 error: interrupted").
+                            state = str(step.get("state") or "")
+                            if state == "ERROR":
+                                hook_denials += 1
+                                logger.info(
+                                    "Antigravity native tool '%s' denied (%d this turn): %s",
+                                    tool_name, hook_denials, _tool_step_error(step)[:200],
+                                )
+                                if hook_denials > MAX_HOOK_DENIALS_PER_TURN:
+                                    self._cut_bad_turn(
+                                        f"model kept calling agy's own tools ({hook_denials} denied)")
+                                    neutralized_tool_step = True
+                                    stop_reason = "native tool denials exceeded"
+                                    break
+                            elif state == "DONE":
+                                # A native tool ran despite the gate (an unknown new tool?).
+                                logger.warning("Antigravity native tool '%s' RAN despite the gate", tool_name)
+                                self._cut_bad_turn(f"agy's own tool '{tool_name}' ran")
+                                neutralized_tool_step = True
+                                stop_reason = "native tool ran"
+                                break
                     if "usage" in step:
                         usage_data = step["usage"]
                         if step.get("step_type") == "agent_response" and isinstance(step["usage"], dict):
@@ -830,6 +938,11 @@ class AntigravityStream(Iterator[Any]):
                         if not self.has_tools:
                             has_content = True
                             yield self._make_chunk(content=text_delta)
+                        elif after_calls_text is not None:
+                            after_calls_text += text_delta
+                            verdict = runaway_verdict(after_calls_text)
+                            if verdict:
+                                runaway_cut = True
                         else:
                             text_buffer += text_delta
                             while text_buffer:
@@ -860,10 +973,30 @@ class AntigravityStream(Iterator[Any]):
                                     else:
                                         break
                                 else:
+                                    if has_tool_calls:
+                                        # Between frames after a call: only
+                                        # whitespace or another frame is valid.
+                                        stripped = text_buffer.lstrip()
+                                        if not stripped or _TOOL_CALL_OPEN.startswith(stripped):
+                                            text_buffer = stripped
+                                            break
+                                        if not stripped.startswith("<tool_call"):
+                                            # Never delivered; watched until the result.
+                                            after_calls_text = stripped
+                                            text_buffer = ""
+                                            if runaway_verdict(after_calls_text):
+                                                runaway_cut = True
+                                            break
+                                        text_buffer = stripped
                                     idx = text_buffer.find("<tool_call")
                                     if idx != -1:
                                         if idx > 0 and not has_tool_calls:
                                             safe_text = text_buffer[:idx]
+                                            pre_call_text += safe_text
+                                            if invented_result_marker(pre_call_text):
+                                                runaway_cut = True
+                                                text_buffer = ""
+                                                break
                                             has_content = True
                                             yield self._make_chunk(content=safe_text)
                                         text_buffer = text_buffer[idx:]
@@ -873,16 +1006,37 @@ class AntigravityStream(Iterator[Any]):
                                         if k > 0:
                                             safe_text = text_buffer[:-k]
                                             if safe_text and not has_tool_calls:
+                                                pre_call_text += safe_text
+                                                if invented_result_marker(pre_call_text):
+                                                    runaway_cut = True
+                                                    text_buffer = ""
+                                                    break
                                                 has_content = True
                                                 yield self._make_chunk(content=safe_text)
                                             text_buffer = text_buffer[-k:]
                                             break
                                         else:
                                             if not has_tool_calls:
+                                                pre_call_text += text_buffer
+                                                if invented_result_marker(pre_call_text):
+                                                    runaway_cut = True
+                                                    text_buffer = ""
+                                                    break
                                                 has_content = True
                                                 yield self._make_chunk(content=text_buffer)
                                             text_buffer = ""
 
+                        if runaway_cut:
+                            why = (runaway_verdict(after_calls_text) if after_calls_text is not None
+                                   else "invented tool results in the answer")
+                            logger.warning(
+                                "Antigravity runaway guard: %s; cutting the turn after %d call(s).",
+                                why, next_tool_call_index,
+                            )
+                            stop_reason = f"runaway guard: {why}"
+                            # Stop the generation now (it can run for minutes and burns quota).
+                            self._cut_bad_turn(f"runaway: {why}")
+                            break
                 elif event_type == "result":
                     res = event.get("result", {})
                     if not self.conversation_id:
@@ -930,6 +1084,16 @@ class AntigravityStream(Iterator[Any]):
                     )
                     break
 
+            if self.has_tools and not runaway_cut and not has_tool_calls and text_buffer:
+                run_end = _tool_call_run_end(text_buffer)
+                if run_end != -1:
+                    logger.warning("Antigravity runaway guard: trimming text after tool calls in result")
+                    why = runaway_verdict(text_buffer[run_end:])
+                    if why:
+                        self._cut_bad_turn(f"runaway: {why}")
+                    text_buffer = text_buffer[:run_end]
+            if self._bad_turn and stop_reason is None:
+                stop_reason = self._bad_turn
             if not saw_result and stop_reason is None:
                 stop_reason = f"stream deadline {self.timeout:g}s reached"
             now = time.monotonic()
@@ -996,6 +1160,16 @@ class AntigravityStream(Iterator[Any]):
                 else:
                     has_content = True
                     yield self._make_chunk(content=text_buffer)
+
+            if self._bad_turn and not has_tool_calls:
+                # Nothing usable was delivered: fail the request with the cause, so Hermes retries
+                # it; for a worker, that retry first rewinds this turn out of agy's conversation.
+                tail = self._get_stderr_tail().strip()
+                raise RuntimeError(
+                    f"Antigravity turn cut: {self._bad_turn}"
+                    + ("; recovering on the next request" if self.is_worker else "")
+                    + (f"; agy stderr: {tail[-500:]}" if tail else "")
+                )
 
             if not self.is_worker:
                 try:
@@ -1065,7 +1239,7 @@ class AntigravityStream(Iterator[Any]):
                 # cannot be retracted -- Hermes aggregates a stream that
                 # raises mid-way, so failing the turn is the only honest
                 # outcome.
-                if not neutralized_tool_step and not success:
+                if not neutralized_tool_step and not (self._bad_turn and has_tool_calls) and not success:
                     raise RuntimeError(
                         "Antigravity execution failed: "
                         + self._empty_result_message(
@@ -1139,7 +1313,7 @@ class AntigravityStream(Iterator[Any]):
                 # cannot be retracted -- Hermes aggregates a stream that
                 # raises mid-way -- so the turn fails, and the finally's
                 # close() terminates the worker that broke it.
-                if not neutralized_tool_step and not success:
+                if not neutralized_tool_step and not (self._bad_turn and has_tool_calls) and not success:
                     raise RuntimeError(
                         "Antigravity execution failed: "
                         + self._empty_result_message(
@@ -1152,6 +1326,7 @@ class AntigravityStream(Iterator[Any]):
                     )
 
             finish_reason = "tool_calls" if has_tool_calls else "stop"
+            delivered_bad = bool(self._bad_turn)
 
             # Resolve usage (advancing the cumulative worker baseline) BEFORE
             # emitting the finish-reason chunk. The common client pattern
@@ -1206,13 +1381,26 @@ class AntigravityStream(Iterator[Any]):
             # semantics of an abandoned successful stream (worker survives,
             # history recorded) must survive this handler.
             success = False
+            if self.is_worker and not self._bad_turn:
+                # E6: a failed worker turn (model error, malformed call, rc 1) left partial steps
+                # in agy's conversation; rewind them out on the next request like any bad turn.
+                exc = sys.exc_info()[1]
+                self._cut_bad_turn(f"failed turn: {str(exc)[:300]}", stop=False)
             raise
         finally:
+            silence_stop.set()
             watchdog_stop.set()
             if watchdog_thread and watchdog_thread.is_alive():
                 watchdog_thread.join(timeout=0.2)
             if self.is_worker:
-                if success and not self._interrupted:
+                if delivered_bad:
+                    # Never record a bad turn as the worker's history: its agy conversation holds
+                    # what went wrong (invented results, a native tool step, a dead stream). The
+                    # client recorded it at the cut; the next request rewinds it out of the
+                    # conversation (client._recover_bad_turn) before anything else is sent.
+                    self._finished = True
+                    self._release_worker_lock_once()
+                elif success and not self._interrupted:
                     note = getattr(self.client, "_note_worker_conversation", None)
                     if callable(note):
                         note(self.conversation_id)
