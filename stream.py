@@ -720,6 +720,19 @@ class AntigravityStream(Iterator[Any]):
                 context = int(last_call.get("input_tokens", 0) or 0) + int(last_call.get("cache_read_tokens", 0) or 0)
                 cached = int(last_call.get("cache_read_tokens", 0) or 0)
                 return (context, deltas.output_tokens, context + deltas.output_tokens, cached)
+            if self.native:
+                # No model call finished in this completion (it ended on a call agy had already
+                # parked): report the worker's last real context plus the results sent since, never 0.
+                estimate = getattr(self.client, "native_context_estimate", None)
+                context = estimate(self.proc) if callable(estimate) else 0
+                if context <= 0 and self.prompt_chars:
+                    # A fresh send that parked before agy reported usage: seed from the prompt size.
+                    note = getattr(self.client, "_note_native_context", None)
+                    context = int(self.prompt_chars) // 4
+                    if callable(note):
+                        note(self.proc, context)
+                if context > 0:
+                    return (context, deltas.output_tokens, context + deltas.output_tokens, 0)
             return (
                 deltas.input_tokens,
                 deltas.output_tokens,
@@ -1070,6 +1083,12 @@ class AntigravityStream(Iterator[Any]):
                             # Per-model-call usage: uncached input + cache reads = the real context
                             # size of this call (result usage is cumulative for a worker session).
                             self._last_call_usage = step["usage"]
+                            if self.native:
+                                note = getattr(self.client, "_note_native_context", None)
+                                if callable(note):
+                                    u = step["usage"]
+                                    note(self.proc, int(u.get("input_tokens", 0) or 0)
+                                         + int(u.get("cache_read_tokens", 0) or 0))
                     if step.get("step_type") == "checkpoint" and self.is_worker:
                         # agy compacted its conversation; standing instructions may be summarized.
                         note = getattr(self.client, "_note_checkpoint", None)

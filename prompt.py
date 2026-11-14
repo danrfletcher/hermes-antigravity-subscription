@@ -557,6 +557,12 @@ _NATIVE_PROMPT_PREAMBLE = (
     "The runtime's own built-in tools (run_command, read_file, write_to_file, edit_file and the rest) "
     "are switched off here: a call to one is refused with a short note and nothing runs.",
     "- Never write tool calls or tool results as text; never simulate a result.",
+    "- Before each batch of tool calls, write one or two plain sentences: what the last results told "
+    "you and what you will do next. Hermes compacts the conversation when it fills and keeps only "
+    "this text and the tool calls; your private reasoning is not kept, so a finding you never wrote "
+    "down is lost.",
+    "- Read the line ranges you need (search first to find them) rather than whole large files, and "
+    "start making the change once you know where it goes.",
     "- If no tool is needed, respond naturally with standard text.",
     "- When the user's latest message introduces a new question or task, do NOT continue prior completed tasks or tool loops. Address the user's latest request directly.",
 )

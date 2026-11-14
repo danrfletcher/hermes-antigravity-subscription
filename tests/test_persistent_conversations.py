@@ -635,6 +635,22 @@ class NativeToolRouteTests(unittest.TestCase):
         finally:
             cl.close()
 
+    def test_parked_completions_report_the_context_size_never_zero(self):
+        # Hermes reads prompt_tokens=0 as "no usage" and compresses on a rough estimate that runs high.
+        cl = self.C.AntigravityClient(command=self.agy)
+        try:
+            m = [self.SYSTEM, {"role": "user", "content": "run two commands"}]
+            r1 = cl.chat.completions.create(model="gemini-3.8-flash", messages=m, tools=[TERMINAL_TOOL],
+                                            hermes_session_id="S1")
+            self.assertGreater(r1.usage.prompt_tokens, 0)
+            m = self.answer(m, r1.choices[0], "x" * 8000)
+            r2 = cl.chat.completions.create(model="gemini-3.8-flash", messages=m, tools=[TERMINAL_TOOL],
+                                            hermes_session_id="S1")
+            self.assertEqual(r2.choices[0].finish_reason, "tool_calls")
+            self.assertGreaterEqual(r2.usage.prompt_tokens, r1.usage.prompt_tokens + 2000)
+        finally:
+            cl.close()
+
     def test_a_request_that_does_not_answer_the_parked_call_recovers_the_turn(self):
         cl = self.C.AntigravityClient(command=self.agy)
         try:

@@ -624,6 +624,11 @@ class AntigravityClient:
         self._worker_bridge_fp: str | None = None
         self._worker_bridge_seq = 0
         self._parked: dict[str, Any] | None = None
+        # Native route: per worker, [last real context tokens, result chars sent since]. A completion
+        # that ends on a parked call often carries no fresh agy usage (one model call can park several
+        # tool calls), and Hermes treats prompt_tokens=0 as "no usage" and falls back to a rough
+        # estimate that runs ~1.6x high on agy, compressing far too early.
+        self._native_context: dict[Any, list[int]] = {}
         # The Hermes session this client is bound to, and its ownership lock (session_store).
         self._session_id: str | None = None
         self._session_claim = None
@@ -790,6 +795,7 @@ class AntigravityClient:
             self._worker_history = []
             self._active_processes.discard(proc)
             self._worker_last_activity.pop(proc, None)
+            self._native_context.pop(proc, None)
             self._worker_cpu_at_activity.pop(proc, None)
             self._terminate_process(proc)
         self._parked = None
@@ -1038,6 +1044,24 @@ class AntigravityClient:
         if header.endswith(tail):
             header = header[: -len(tail)].rstrip()
         return "### STANDING INSTRUCTIONS (restated; they replace any earlier version):\n\n" + header
+
+    def _note_native_context(self, proc: Any, tokens: int) -> None:
+        """A real context reading from agy (one model call's input plus cache reads)."""
+        if tokens > 0:
+            with self._lock:
+                self._native_context[proc] = [int(tokens), 0]
+
+    def _note_native_result_chars(self, proc: Any, chars: int) -> None:
+        with self._lock:
+            ctx = self._native_context.get(proc)
+            if ctx is not None:
+                ctx[1] += max(0, int(chars))
+
+    def native_context_estimate(self, proc: Any) -> int:
+        """The worker's context now: its last real reading plus the results sent since (4 chars a token)."""
+        with self._lock:
+            ctx = self._native_context.get(proc)
+            return ctx[0] + ctx[1] // 4 if ctx else 0
 
     def _note_checkpoint(self) -> None:
         """agy compacted the conversation: restate the standing instructions on the next turn."""
@@ -1458,6 +1482,7 @@ class AntigravityClient:
             tmp.write_text(json.dumps({"text": _tool_result_text(r.get("content"))}, ensure_ascii=False),
                            encoding="utf-8")
             os.replace(tmp, results_dir / f"{seq:06d}.json")
+            self._note_native_result_chars(proc, len(_tool_result_text(r.get("content"))))
         with self._lock:
             if self._parked is parked:
                 self._parked = None
