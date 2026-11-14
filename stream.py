@@ -147,6 +147,24 @@ def hermes_tool_schemas(tools: list[dict[str, Any]] | None) -> dict[str, dict[st
     return out
 
 
+# How long a native mcp_hermes_* step may take to reach the bridge (after agy's hook approves it).
+BRIDGE_CALL_WAIT_SECONDS = 15.0
+
+
+def is_hermes_bridge_step(step: dict[str, Any]) -> bool:
+    """A tool step calling Hermes' tools through the plugin's MCP server (mcp_bridge.py)."""
+    name = str(step.get("tool_name") or "")
+    if name.startswith("mcp_hermes_"):
+        return True
+    if name == "call_mcp_tool":
+        info = step.get("tool_info")
+        params = info.get("parameters") if isinstance(info, dict) else None
+        if isinstance(params, dict):
+            server = params.get("ServerName") or params.get("serverName") or params.get("server_name")
+            return str(server or "").lower() == "hermes"
+    return False
+
+
 def salvage_native_call(step: dict[str, Any], schemas: dict[str, dict[str, Any]]) -> tuple[str, str] | None:
     """A tool step that is really a Hermes tool call: ``(name, arguments JSON)``, else None.
 
@@ -302,6 +320,7 @@ class AntigravityStream(Iterator[Any]):
         prompt_chars: int = 0,
         delivery_watch: Any = None,
         delivery_sample_key: str = "",
+        native: bool = False,
     ):
         # Loud pairing, not a defaulted bool (review nit): a future site
         # passing worker_lock WITHOUT worker_lock_held would silently never
@@ -324,6 +343,9 @@ class AntigravityStream(Iterator[Any]):
         self.timeout = timeout
         self.has_tools = bool(tools)
         self._tool_schemas = hermes_tool_schemas(tools)
+        # Native tool route: the worker's model calls Hermes' tools through mcp_bridge.py.
+        self.native = bool(native and tools and is_worker)
+        self.parked_calls: list[dict[str, Any]] = []
         self.is_worker = is_worker
         self.worker_lock = worker_lock
         self.messages = messages
@@ -828,6 +850,8 @@ class AntigravityStream(Iterator[Any]):
         hook_denials = 0
         # step_index -> the Hermes call salvaged from a native function call (salvage_native_call).
         salvaged_steps: dict[Any, str] = {}
+        # Native route: the mcp_hermes_* steps already handed to Hermes (by step_index).
+        bridge_steps: set[Any] = set()
         success = False
         start_time = time.monotonic()
         # File mtimes are wall-clock epoch seconds; durations and deadlines
@@ -951,6 +975,29 @@ class AntigravityStream(Iterator[Any]):
                         neutralized_tool_step = True
                         stop_reason = "salvaged native calls"
                         break
+                    if self.native and step.get("step_type") == "tool" and is_hermes_bridge_step(step):
+                        state = str(step.get("state") or "")
+                        key = step.get("step_index")
+                        if state not in ("DONE", "ERROR") and key not in bridge_steps:
+                            bridge_steps.add(key)
+                            calls = self.client._await_bridge_calls(self.proc, BRIDGE_CALL_WAIT_SECONDS)
+                            if calls:
+                                for c in calls:
+                                    call = SimpleNamespace(id=c["id"], type="function", function=SimpleNamespace(
+                                        name=c["name"], arguments=c["arguments"]))
+                                    for call_delta in identify_calls([call]):
+                                        yield self._make_chunk(tool_calls=[call_delta])
+                                has_tool_calls = True
+                                self.parked_calls = calls
+                                success = True
+                                stop_reason = "tool call parked"
+                                break
+                            logger.warning("Antigravity: native step %s brought no Hermes call",
+                                           step.get("tool_name"))
+                        elif state == "ERROR":
+                            logger.warning("Antigravity: native Hermes tool step failed: %s",
+                                           _tool_step_error(step)[:300])
+                        continue
                     salvaged = (salvage_native_call(step, self._tool_schemas)
                                 if step.get("step_type") == "tool" and self.has_tools
                                 and not self._is_permitted_native_media_step(
@@ -1064,6 +1111,9 @@ class AntigravityStream(Iterator[Any]):
                                                 "invalid tool call block in stream"
                                             )
                                         if parsed_calls:
+                                            if self.native:
+                                                logger.warning("Antigravity: text tool call on the native "
+                                                               "route (regression signal)")
                                             has_tool_calls = True
                                             for call_delta in identify_calls(parsed_calls):
                                                 yield self._make_chunk(tool_calls=[call_delta])
@@ -1521,6 +1571,13 @@ class AntigravityStream(Iterator[Any]):
                     # client recorded it at the cut; the next request rewinds it out of the
                     # conversation (client._recover_bad_turn) before anything else is sent.
                     self._finished = True
+                    self._release_worker_lock_once()
+                elif success and not self._interrupted and self.parked_calls:
+                    # The agy turn goes on once Hermes answers: nothing is recorded yet.
+                    note = getattr(self.client, "_note_worker_conversation", None)
+                    if callable(note):
+                        note(self.conversation_id)
+                    self.client._park_worker(self.proc, self.parked_calls, self.messages)
                     self._release_worker_lock_once()
                 elif success and not self._interrupted:
                     note = getattr(self.client, "_note_worker_conversation", None)

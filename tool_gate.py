@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""agy PreToolUse hook: deny every native agy tool except the media-attach read.
+"""agy PreToolUse hook: deny every native agy tool except Hermes' own tools and the media-attach read.
 
 Installed by ``process.install_tool_gate`` as ``<isolated HOME>/.gemini/config/hooks.json``
 (matcher ``*``), so it runs before EVERY native tool agy's model tries: run_command, write_file,
 schedule, invoke_subagent, search_web, ... (agy 1.5.9 offers 60). Hermes runs tools itself, from
-``<tool_call>`` text blocks; a native tool would run outside the repo, invisible to Hermes' loop and
+native ``mcp_hermes_*`` calls (the plugin's MCP server, mcp_bridge.py) or ``<tool_call>`` text blocks; a
+native agy tool would run outside the repo, invisible to Hermes' loop and
 session log. A denial returns to the model in about 0.1 s with the reason below, and the model then
 re-emits the request as a text tool call.
 
@@ -34,10 +35,23 @@ MEDIA_EXTS = {
     ".mp3", ".wav", ".ogg", ".oga", ".m4a", ".aac", ".flac", ".opus",
 }
 DENY_REASON = (
-    "This is headless inference mode: native tools are unavailable here. Request every tool, "
-    "including file reads and commands, as a <tool_call> text block in the format given in your "
-    "instructions, then stop and wait for the result."
+    "This is headless inference mode: the runtime's built-in tools are unavailable here. Use the "
+    "Hermes tools you were given instead (the mcp_hermes_* functions, or a <tool_call> text block "
+    "if your instructions describe that format), then wait for the result."
 )
+# The plugin's own MCP server (mcp_bridge.py) serves Hermes' tools under this prefix. It is the only
+# MCP server in the isolated HOME and runs nothing itself: Hermes runs each call.
+HERMES_SERVER = "hermes"
+HERMES_PREFIX = "mcp_hermes_"
+
+
+def is_hermes_tool(name: str, args) -> bool:
+    if name.startswith(HERMES_PREFIX) and len(name) > len(HERMES_PREFIX):
+        return True
+    if name == "call_mcp_tool" and isinstance(args, dict):
+        server = args.get("ServerName") or args.get("serverName") or args.get("server_name")
+        return str(server or "").lower() == HERMES_SERVER
+    return False
 
 
 def _granted_paths(settings_path: str) -> set[str]:
@@ -86,6 +100,8 @@ def decide(payload, settings_path: str, isolated_home: str) -> dict:
     call = payload.get("toolCall") if isinstance(payload, dict) else None
     call = call if isinstance(call, dict) else {}
     name = str(call.get("name") or "")
+    if is_hermes_tool(name, call.get("args")):
+        return {"decision": "allow"}
     if is_permitted_media_read(name, call.get("args"), settings_path, isolated_home):
         return {"decision": "allow"}
     return {"decision": "deny", "reason": DENY_REASON}

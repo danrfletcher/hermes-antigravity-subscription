@@ -547,6 +547,37 @@ _PROMPT_PREAMBLE = (
     "- When the user's latest message introduces a new question or task, do NOT continue prior completed tasks or tool loops. Address the user's latest request directly.",
 )
 
+# Native route (mcp_bridge.py): Hermes' tools are declared to the model as real functions, so the
+# prompt carries no tool catalog and no <tool_call> format. Google's Gemini 4 migration notes: raw-text
+# JSON tool calls with no declared tools return MALFORMED_FUNCTION_CALL; "Always declare tools natively".
+_NATIVE_PROMPT_PREAMBLE = (
+    "You are operating in HEADLESS INFERENCE MODE as the model behind Hermes Agent. Your tools for "
+    "this session are the functions of the 'hermes' tool server (named mcp_hermes_<tool>): call them "
+    "as normal function calls. Hermes runs each call on the host and returns its real result to you.",
+    "The runtime's own built-in tools (run_command, read_file, write_to_file, edit_file and the rest) "
+    "are switched off here: a call to one is refused with a short note and nothing runs.",
+    "- Never write tool calls or tool results as text; never simulate a result.",
+    "- If no tool is needed, respond naturally with standard text.",
+    "- When the user's latest message introduces a new question or task, do NOT continue prior completed tasks or tool loops. Address the user's latest request directly.",
+)
+
+
+def _render_tool_call_text(tc: dict[str, Any], native: bool) -> str:
+    """An earlier assistant tool call as transcript text."""
+    fn = tc.get("function") or {}
+    arguments = fn.get("arguments", "{}") if isinstance(fn.get("arguments"), str) else json.dumps(
+        fn.get("arguments", {}), ensure_ascii=False)
+    if native:
+        # Not the <tool_call> frame: on the native route the model must not learn a text format.
+        return f"[Called tool {fn.get('name', '')} ({tc.get('id') or 'call_1'}) with arguments {arguments}]"
+    call_obj = {
+        "id": tc.get("id") or "call_1",
+        "type": "function",
+        "function": {"name": fn.get("name", ""), "arguments": arguments},
+    }
+    return f"<tool_call>{json.dumps(call_obj, ensure_ascii=False)}</tool_call>"
+
+
 # agy attaches media pixels through its own native read step: the model must
 # call read_file/view_file on the referenced path, and the CLI then inlines the
 # file as a media block. The blanket "native tools are disabled" preamble would
@@ -778,6 +809,7 @@ def _format_messages_as_prompt(
     media_sink: Optional[set] = None,
     historical_tool_chars: int = 300,
     keep_whole: Optional[set] = None,
+    native: bool = False,
 ) -> str:
     """Assemble Hermes message history, system prompt, and tool schemas into a canonical prompt.
 
@@ -787,18 +819,21 @@ def _format_messages_as_prompt(
     ``historical_tool_chars``: tool results older than the last 8 are cut to this length. The
     persistent-conversation client raises it so a full resend keeps skill/workflow text the
     model still has to follow, and only falls back to the short cut when the prompt is too big."""
-    try:
-        from agent.acp_openai_bridge import render_tool_bridge_sections
-        tool_sections = render_tool_bridge_sections(tools, tool_choice)
-    except Exception:
-        tool_sections = []
-        if tools:
-            tool_sections.append(
-                "Available tools (OpenAI function schema):\n"
-                + json.dumps(tools, ensure_ascii=False)
-            )
-
-    sections: list[str] = [*_PROMPT_PREAMBLE, *tool_sections]
+    if native:
+        # The tools are declared to the model natively (mcp_bridge.py): no catalog, no text format.
+        sections: list[str] = [*_NATIVE_PROMPT_PREAMBLE]
+    else:
+        try:
+            from agent.acp_openai_bridge import render_tool_bridge_sections
+            tool_sections = render_tool_bridge_sections(tools, tool_choice)
+        except Exception:
+            tool_sections = []
+            if tools:
+                tool_sections.append(
+                    "Available tools (OpenAI function schema):\n"
+                    + json.dumps(tools, ensure_ascii=False)
+                )
+        sections = [*_PROMPT_PREAMBLE, *tool_sections]
 
     valid_messages = [m for m in messages if isinstance(m, dict)]
     last_msg = valid_messages[-1] if valid_messages else None
@@ -869,16 +904,7 @@ def _format_messages_as_prompt(
             if tool_calls := message.get("tool_calls"):
                 for tc in tool_calls:
                     if isinstance(tc, dict):
-                        fn = tc.get("function") or {}
-                        call_obj = {
-                            "id": tc.get("id") or "call_1",
-                            "type": "function",
-                            "function": {
-                                "name": fn.get("name", ""),
-                                "arguments": fn.get("arguments", "{}") if isinstance(fn.get("arguments"), str) else json.dumps(fn.get("arguments", {}), ensure_ascii=False)
-                            }
-                        }
-                        parts.append(f"<tool_call>{json.dumps(call_obj, ensure_ascii=False)}</tool_call>")
+                        parts.append(_render_tool_call_text(tc, native))
             if parts:
                 transcript.append("Assistant:\n" + "\n".join(parts))
             continue
@@ -912,7 +938,8 @@ def _format_messages_as_prompt(
         sections.append(
             "### LATEST TOOL RESULTS RECEIVED.\n"
             "INSTRUCTION: Evaluate the latest tool results in the transcript above and continue the task. "
-            "If more tools are needed, emit <tool_call> tags. If you have enough information, "
+            + ("If more tools are needed, call them. " if native else "If more tools are needed, emit <tool_call> tags. ")
+            + "If you have enough information, "
             "respond clearly to the user without repeating prior summaries."
         )
         pending = _latest_user_text(history_messages)
@@ -948,6 +975,7 @@ def _format_delta_prompt(
     new_messages: Sequence[dict[str, Any]],
     pending_user_text: str = "",
     media_sink: Optional[set] = None,
+    native: bool = False,
 ) -> str:
     """Format only the incremental messages in an ongoing multi-turn interaction.
 
@@ -991,16 +1019,7 @@ def _format_delta_prompt(
             if tool_calls := msg.get("tool_calls"):
                 for tc in tool_calls:
                     if isinstance(tc, dict):
-                        fn = tc.get("function") or {}
-                        call_obj = {
-                            "id": tc.get("id") or "call_1",
-                            "type": "function",
-                            "function": {
-                                "name": fn.get("name", ""),
-                                "arguments": fn.get("arguments", "{}") if isinstance(fn.get("arguments"), str) else json.dumps(fn.get("arguments", {}), ensure_ascii=False)
-                            }
-                        }
-                        subparts.append(f"<tool_call>{json.dumps(call_obj, ensure_ascii=False)}</tool_call>")
+                        subparts.append(_render_tool_call_text(tc, native))
             if subparts:
                 parts.append("Assistant:\n" + "\n".join(subparts))
             continue
@@ -1012,8 +1031,10 @@ def _format_delta_prompt(
         parts.append(
             "Continue the conversation from the latest tool result. "
             "REMINDER: You are in HEADLESS INFERENCE MODE. Tools come from Hermes Agent. "
-            "If you need to call a tool, emit ONLY <tool_call>{...}</tool_call> blocks in your text output; "
-            "the runtime's built-in tools are switched off and only return a refusal."
+            + ("If you need to call a tool, call one of your hermes tool functions; "
+               if native else
+               "If you need to call a tool, emit ONLY <tool_call>{...}</tool_call> blocks in your text output; ")
+            + "the runtime's built-in tools are switched off and only return a refusal."
         )
         if pending_user_text:
             parts.append(_pending_user_request_section(pending_user_text))

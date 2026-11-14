@@ -63,8 +63,69 @@ _MEDIA_RULE_TOOLS = ("read_file", "view_file")
 
 # Native-tool gate (see tool_gate.py). Deny rules are the second layer under the hook: narrow on
 # purpose. A read_file(*) deny would also block agy's media attach, which reads through read_file.
-NATIVE_TOOL_DENY_RULES = ("command(*)", "write_file(*)", "mcp(*)", "execute_url(*)")
+# No mcp(*) rule: Hermes' own tools reach the model through the plugin's MCP server (mcp_bridge.py,
+# the only server in the isolated HOME), and the hook allows exactly that server's tools.
+NATIVE_TOOL_DENY_RULES = ("command(*)", "write_file(*)", "execute_url(*)")
+_RETIRED_DENY_RULES = ("mcp(*)",)
 TOOL_GATE_SCRIPT = Path(__file__).resolve().parent / "tool_gate.py"
+MCP_BRIDGE_SCRIPT = Path(__file__).resolve().parent / "mcp_bridge.py"
+# agy's limit for one MCP call: Hermes runs the parked call meanwhile (approvals included).
+MCP_CALL_TIMEOUT_SECONDS = 3600
+_MCP_CONFIG_LOCK = threading.Lock()
+
+
+def bridge_tool_specs(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Hermes (OpenAI function) tools as MCP tool specs: name, description, inputSchema."""
+    specs: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for tool in tools or []:
+        fn = tool.get("function") if isinstance(tool, dict) else None
+        if not isinstance(fn, dict):
+            continue
+        name = fn.get("name")
+        if not isinstance(name, str) or not name or name in seen:
+            continue
+        seen.add(name)
+        params = fn.get("parameters")
+        if not isinstance(params, dict) or params.get("type") != "object":
+            params = {"type": "object", "properties": {}}
+        specs.append({"name": name, "description": str(fn.get("description") or ""),
+                      "inputSchema": params})
+    return specs
+
+
+def write_mcp_config(isolated_home: str | Path, tool_names: list[str] | set[str],
+                     python: str | None = None) -> Path:
+    """Point agy at the plugin's MCP server and mark every Hermes tool name ``eager``.
+
+    agy reads ``$HOME/.gemini/config/mcp_config.json`` at spawn. ``eager`` (undocumented, agy
+    1.5.9) puts a server's tool among the model's own function declarations; without it the model
+    reaches MCP tools only through ``call_mcp_tool`` and drifts back to agy's built-in tools. The
+    tools map only grows (workers in this HOME may offer different tool sets); the server itself
+    offers each worker exactly its own tools (``HERMES_AGY_BRIDGE_DIR``).
+    """
+    import sys as _sys
+
+    path = Path(isolated_home) / ".gemini" / "config" / "mcp_config.json"
+    with _MCP_CONFIG_LOCK:
+        try:
+            current = _json.loads(path.read_text(encoding="utf-8"))
+            known = current["mcpServers"]["hermes"]["tools"]
+            known = {str(k) for k in known} if isinstance(known, dict) else set()
+        except (OSError, ValueError, KeyError, TypeError):
+            known = set()
+        names = sorted(known | {str(n) for n in tool_names})
+        config = {"mcpServers": {"hermes": {
+            "command": python or _sys.executable,
+            "args": [str(MCP_BRIDGE_SCRIPT)],
+            "timeoutSeconds": MCP_CALL_TIMEOUT_SECONDS,
+            "tools": {name: {"eager": True} for name in names},
+        }}}
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f"mcp_config.json.{os.getpid()}.tmp")
+        tmp.write_text(_json.dumps(config, indent=1), encoding="utf-8")
+        os.replace(tmp, path)
+    return path
 
 
 def install_tool_gate(isolated_home: str | Path, isolated_gemini_dir: str | Path,
@@ -103,6 +164,7 @@ def install_tool_gate(isolated_home: str | Path, isolated_gemini_dir: str | Path
     deny = permissions.get("deny")
     if not isinstance(deny, list):
         deny = []
+    deny = [rule for rule in deny if rule not in _RETIRED_DENY_RULES]
     for rule in NATIVE_TOOL_DENY_RULES:
         if rule not in deny:
             deny.append(rule)
